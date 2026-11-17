@@ -12,6 +12,10 @@ Open **Developer PowerShell for VS** (Start menu), then:
 
 Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHookV SDK: ...` when it finds the SDK.
 
+## Updating (after any change)
+In Developer PowerShell for VS, from the repo folder: `.\tools\update.ps1` (set your GTA and AC folders at the
+top of the script once). It pulls, builds, installs the GTA script and the AC app, and checks each step.
+
 ## Install
 1. **GTA:** copy `build\gta\Release\GtaAcLink.asi` and `gta\gta_link.ini` into the GTA V folder
    (next to `GTA5_Enhanced.exe` and `ScriptHookV.dll`).
