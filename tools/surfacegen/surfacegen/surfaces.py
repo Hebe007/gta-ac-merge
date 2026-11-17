@@ -11,7 +11,7 @@ from .ybn_xml import Tri
 
 log = logging.getLogger(__name__)
 
-AC_KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "WALL")
+AC_KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "SNOW", "ICE", "WALL")
 WALL_SLOPE_DEG = 60.0
 STEP_HEIGHT = 0.35  # steep faces lower than this (kerbs, steps) stay drivable so the wheels climb them
 _COS_WALL = math.cos(math.radians(WALL_SLOPE_DEG))
@@ -41,19 +41,27 @@ def classify(t: Tri, table: dict[str, str], step_height: float = STEP_HEIGHT) ->
         height = max(t.a[2], t.b[2], t.c[2]) - min(t.a[2], t.b[2], t.c[2])
         if height >= step_height or table.get(t.material) == "WALL":
             return "WALL"
-    if t.material in table:
-        return table[t.material]
-    best = max((k for k in table if k.endswith("*") and t.material.startswith(k[:-1])), key=len, default=None)
+    return material_key(t.material, table)
+
+
+def material_key(material: str, table: dict[str, str]) -> str:
+    """AC surface for a GTA material name: exact table entry, else longest matching PREFIX* entry, else a guess
+    from keywords in the name (reported once)."""
+    if material in table:
+        return table[material]
+    best = max((k for k in table if k.endswith("*") and material.startswith(k[:-1])), key=len, default=None)
     if best:
         return table[best]
-    guess = guess_surface(t.material)
-    if t.material not in _warned:
-        _warned.add(t.material)
-        log.warning("unknown GTA material %s -> %s (guessed from its name)", t.material, guess)
+    guess = guess_surface(material)
+    if material not in _warned:
+        _warned.add(material)
+        log.warning("unknown GTA material %s -> %s (guessed from its name)", material, guess)
     return guess
 
 
 KEYWORDS = (  # first match wins
+    (("SNOW",), "SNOW"),
+    (("ICE",), "ICE"),
     (("GRASS", "BUSH", "LEAVES", "HAY", "MOSS", "PLANT", "HEDGE", "TWIG"), "GRASS"),
     (("SAND",), "SAND"),
     (("GRAVEL", "MUD", "DIRT", "CLAY", "SOIL", "ROCK"), "GRAVEL"),
@@ -61,9 +69,9 @@ KEYWORDS = (  # first match wins
 
 
 def guess_surface(material: str) -> str:
-    m = material.upper()
+    tokens = material.upper().split("_")  # whole words only: OFFICE is not ICE
     for words, key in KEYWORDS:
-        if any(w in m for w in words):
+        if any(tok.startswith(w) for tok in tokens for w in words):
             return key
     return "ROAD"
 

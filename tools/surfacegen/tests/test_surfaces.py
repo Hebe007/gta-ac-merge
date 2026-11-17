@@ -155,3 +155,10 @@ def test_unknown_materials_are_guessed_from_keywords(caplog):
     assert classify(tri(mat="ROCK_NOINST"), table) == "GRAVEL"
     assert classify(tri(mat="ANIMAL_DEFAULT"), table) == "ROAD"
     assert "BUSH_THICK" in caplog.text  # still reported, as a guess
+
+
+def test_keyword_guess_uses_whole_words():
+    from surfacegen.surfaces import guess_surface
+    assert guess_surface("OFFICE_CARPET") == "ROAD"
+    assert guess_surface("ICE_THIN") == "ICE"
+    assert guess_surface("SNOW_LIGHT") == "SNOW"

@@ -56,3 +56,9 @@ RPF Explorer: search `.ybn`, sort by **Path**. Select whole blocks (click first 
 | `x64a.rpf` ... `x64w.rpf` | `work\xml\base\` |
 
 The generator keeps the newest copy of each file: base < dlc < patchdays (by number) < update < mods.
+
+## Generator: speed, memory and the cache
+- Needs `pip install numpy scipy` once (the default `--engine bulk`; `--engine python` is the old slow path).
+- The first run reads all XML and saves `work\surfacegen_cache_xml.npz`. Later runs with the same exported files
+  reuse it ("using cache") and skip the slow reading, so changing materials, `--step-height`, walls etc. is quick.
+  Re-exporting or changing files makes it read again automatically. `--no-cache` forces a fresh read.

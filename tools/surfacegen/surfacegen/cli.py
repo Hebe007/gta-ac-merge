@@ -9,6 +9,8 @@ from pathlib import Path
 
 from collections import Counter
 
+import numpy as np
+
 from .surfaces import _inside, build_meshes, classify, load_table, weld
 from .track import write_track
 from .ybn_xml import read_materials_dat, read_ybn_xml
@@ -153,9 +155,87 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--keep-interiors", action="store_true", help="don't leave out files that look like interiors")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
+    ap.add_argument("--engine", choices=("bulk", "python"), default="bulk",
+                    help="bulk = NumPy, for the full map (needs: pip install numpy scipy); python = original")
+    ap.add_argument("--cache", type=Path, help="cache file (default: next to --xml-dir)")
+    ap.add_argument("--no-cache", action="store_true", help="always read the XML, don't write a cache")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    if a.engine == "bulk":
+        _run_bulk(a)
+    else:
+        _run_python(a)
 
+
+def _run_bulk(a) -> None:
+    from . import bulk
+
+    names = read_materials_dat(a.materials_dat) if a.materials_dat else None
+    files = pick_sources(a.xml_dir, a.prefer)
+    cache = None if a.no_cache else (a.cache or a.xml_dir.parent / f"surfacegen_cache_{a.xml_dir.name}.npz")
+    sig = bulk.signature(files, a.materials_dat)
+    soup = bulk.load_cache(cache, sig) if cache and cache.exists() else None
+    if soup is not None:
+        logging.info("using cache %s (%d triangles)", cache, len(soup.tris))
+    else:
+        logging.info("reading %d collision files", len(files))
+        soup = bulk.read_files(files, names)
+        if cache:
+            bulk.save_cache(cache, soup, sig)
+            logging.info("saved cache %s", cache)
+
+    if not a.keep_interiors:
+        bad = bulk.interior_files(soup)
+        if bad:
+            soup = soup.subset(~np.isin(soup.file, bad))
+            shown = [soup.files[i] for i in bad[:8]]
+            logging.info("left out %d interior files (stored in local coordinates): %s%s", len(bad), ", ".join(shown),
+                         " ..." if len(bad) > 8 else "")
+    counts = np.bincount(soup.file, minlength=len(soup.files))
+    small = [f"{soup.files[i]} ({counts[i]})" for i in np.nonzero((counts > 0) & (counts < 50))[0]]
+    if small:
+        logging.warning("files with almost no collision (possible holes): %s", ", ".join(small[:20]))
+    logging.info("%d triangles from %d files", len(soup.tris), int((counts > 0).sum()))
+
+    if a.weld > 0:
+        logging.info("welding seams...")
+        soup, merged, dropped = bulk.weld(soup, a.weld)
+        logging.info("welded %d vertices within %.0f cm; dropped %d collapsed triangles", merged, a.weld * 100, dropped)
+
+    logging.info("sorting into surfaces...")
+    table = load_table(a.materials_toml)
+    keys = bulk.classify(soup, table, a.step_height)
+    code = soup.mat.astype(np.int64) * len(bulk.KEYS) + keys
+    u, c = np.unique(code, return_counts=True)
+    logging.info("GTA material -> AC surface (triangles):")
+    for i in np.argsort(-c):
+        logging.info("  %8d  %s -> %s", c[i], soup.names[u[i] // len(bulk.KEYS)], bulk.KEYS[u[i] % len(bulk.KEYS)])
+
+    sx, sy, sz, _ = a.start
+    (x0, y0, z0, x1, y1, z1), nearest = bulk.coverage(soup, sx, sy)
+    logging.info("collision covers GTA x %.0f..%.0f, y %.0f..%.0f, z %.0f..%.0f; nearest triangle %.0f m from start",
+                 x0, x1, y0, y1, z0, z1, nearest)
+    g = bulk.ground_under(soup, sx, sy, below=sz + 2)
+    if g is None:
+        logging.warning("no collision found under the start point (%.1f, %.1f): the car will fall", sx, sy)
+    else:
+        logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
+
+    meshes = bulk.build_meshes(soup, keys, a.bbox)
+    if len(meshes) == 1:
+        raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")
+    if a.wall_surface == "ROAD" and "WALL" in meshes:
+        meshes["ROAD_WALL"] = meshes.pop("WALL")
+    logging.info("writing the track file...")
+    write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided,
+                flip_walls=a.flip_walls, writer=bulk.write_kn5)
+    sizes = {k: len(t) for k, t in meshes.items() if k != "__verts__"}
+    kn5 = a.out / f"{a.out.name}_{a.layout}.kn5"
+    logging.info("wrote %s layout %s: %d triangles (%s), %.0f MB", a.out, a.layout, sum(sizes.values()),
+                 ", ".join(f"{k} {n}" for k, n in sizes.items()), kn5.stat().st_size / 1e6)
+
+
+def _run_python(a) -> None:
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
     files = pick_sources(a.xml_dir, a.prefer)
     logging.info("reading %d collision files", len(files))

@@ -42,7 +42,7 @@ def test_surfaces_ini_has_one_section_per_used_key(tmp_path):
 
 def test_cli_end_to_end(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(out),
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(out),
               "--layout", "downtown", "--start", "105,202,6,0"])
     m, dummies = read_kn5(out / "gta_ls_downtown.kn5")
     assert any(name.startswith("1ROAD") for name in m)
@@ -61,7 +61,7 @@ def test_cli_prefers_normal_mover_collision_over_hi(tmp_path):
 
 def test_cli_prints_material_summary(tmp_path, caplog):
     caplog.set_level("INFO")
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(tmp_path / "gta_ls"),
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(tmp_path / "gta_ls"),
               "--layout", "downtown", "--start", "105,202,6,0"])
     assert "TARMAC -> ROAD" in caplog.text
     assert "GRASS -> GRASS" in caplog.text
@@ -102,17 +102,17 @@ def test_probe_lists_nearest_triangles():
 
 def test_cli_welds_by_default_and_reports(tmp_path, caplog):
     caplog.set_level("INFO")
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls"), "--layout", "downtown", "--start", "105,202,6,0"])
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls"), "--layout", "downtown", "--start", "105,202,6,0"])
     assert "welded" in caplog.text
     caplog.clear()
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
               "--weld", "0"])
     assert "welded" not in caplog.text
 
 
 def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0",
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0",
               "--wall-surface", "ROAD"])
     m, _ = read_kn5(out / "gta_ls_downtown.kn5")
     assert not any(n.startswith("1WALL") for n in m)
@@ -121,7 +121,7 @@ def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
 
 def test_cli_flip_walls_option(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
     assert (out / "gta_ls_downtown.kn5").exists()
 
 
