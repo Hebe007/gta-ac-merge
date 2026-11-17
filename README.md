@@ -6,9 +6,10 @@ GTA draws everything; AC runs hidden on an invisible surface generated from your
 - Design: `docs/superpowers/specs/2026-11-17-gta-ac-merge-design.md`
 - Build plan: `docs/superpowers/plans/2026-11-17-gta-ac-merge.md`
 - Spike results and PC setup: `docs/spikes.md`
+- Build, install and run the link: `docs/install.md`
 
 Layout: `common/` shared C++ (maths, shared-memory protocol) · `tests/` C++ tests ·
-`csp/` Assetto Corsa (CSP Lua) side · `tools/surfacegen/` GTA collision -> AC track generator.
+`gta/` GTA V script (.asi) · `csp/GtaLink/` Assetto Corsa app (CSP Lua) · `tools/surfacegen/` GTA collision -> AC track generator.
 
 Tests (Linux or Windows):
     cmake -S . -B build && cmake --build build && ctest --test-dir build

@@ -18,12 +18,23 @@ def lua_layout(src: str, name: str) -> list[str]:
 
 def test_link_state_layout_matches():
     h = (ROOT / "common/link_protocol.h").read_text()
-    lua = (ROOT / "csp/link_layout.lua").read_text()
+    lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
     assert lua_layout(lua, "LINK_STATE") == c_struct_fields(h, "LinkState")
 
 
 def test_hit_block_layout_matches():
     h = (ROOT / "common/link_protocol.h").read_text()
-    lua = (ROOT / "csp/link_layout.lua").read_text()
+    lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
     assert lua_layout(lua, "HIT_ITEM") == c_struct_fields(h, "HitItem")
     assert lua_layout(lua, "HIT_BLOCK") == c_struct_fields(h, "HitBlock")
+
+
+def test_names_and_constants_match():
+    h = (ROOT / "common/link_protocol.h").read_text()
+    lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
+    c = lambda name: re.search(r"%s\s*=\s*([^;]+);" % name, h).group(1).strip().strip('"')
+    l = lambda name: re.search(r"M\.%s\s*=\s*([^\n]+)" % name, lua).group(1).strip().strip("'")
+    assert c("LINK_STATE_NAME") == l("STATE_NAME")
+    assert c("LINK_HITS_NAME") == l("HITS_NAME")
+    assert int(c("LINK_MAGIC").split()[0], 16) == int(l("MAGIC"), 16)
+    assert int(c("LINK_VERSION")) == int(l("VERSION"))

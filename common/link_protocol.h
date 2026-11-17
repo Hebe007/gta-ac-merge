@@ -7,10 +7,11 @@
 constexpr uint32_t LINK_MAGIC = 0x47544143;  // "GTAC"
 constexpr uint32_t LINK_VERSION = 1;
 
-// Names of the memory-mapped files. CSP's ac.writeMemoryMappedFile / ac.readMemoryMappedFile open these by
-// name; verify the exact name the GTA side must use (any prefix CSP adds) with tools/linkpeek.py in Task 7.
-constexpr const char* LINK_STATE_NAME = "GtaAcLink_State_v1";
-constexpr const char* LINK_HITS_NAME = "GtaAcLink_Hits_v1";
+// Names of the memory-mapped files, opened by CSP's ac.writeMemoryMappedFile. CSP's own examples use the
+// "AcTools.CSP." prefix, so we do too. tools/linkpeek.py shows whether the GTA side sees the data under this name;
+// the GTA side can override it with shm_name in gta_link.ini.
+constexpr const char* LINK_STATE_NAME = "AcTools.CSP.GtaAcLink.State.v1";
+constexpr const char* LINK_HITS_NAME = "AcTools.CSP.GtaAcLink.Hits.v1";
 
 // Written by AC (CSP car script) every physics step.
 struct LinkState {

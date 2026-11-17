@@ -1,0 +1,15 @@
+import struct
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import linkpeek  # noqa: E402
+
+
+def test_decode_matches_layout():
+    assert linkpeek.SIZE == 112
+    vals = [0x47544143, 1, 42, 3, 1, 2, 3, 0, 0, -1, 0, 1, 0, 5, 0, 0, 0, 0, 0, 9, 9, 9, 9, 12.5, 4200, 88, 1300, 4]
+    d = linkpeek.decode(struct.pack(linkpeek.FMT, *vals))
+    assert d["magic_ok"] and d["seq"] == 42 and d["resets"] == 3
+    assert d["pos"] == (1, 2, 3) and d["fwd"] == (0, 0, -1)
+    assert d["rpm"] == 4200 and d["speed_kmh"] == 88 and d["mass"] == 1300 and d["gear"] == 4

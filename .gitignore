@@ -6,3 +6,4 @@ __pycache__/
 .pytest_cache/
 third_party/shv/
 !tools/surfacegen/tests/fixtures/*.ybn.xml
+Scripthook/
