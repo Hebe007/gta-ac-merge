@@ -8,7 +8,8 @@ from pathlib import Path
 from .kn5 import start_matrix, write_kn5
 from .surfaces import Mesh
 
-# Starting values, tuned in spike B. WALL has no grip and never counts as track.
+# Starting values, tuned in spike B. Walls are NOT a surface: AC treats every surfaces.ini entry as ground the
+# wheels drive on, while meshes named 1WALL... without an entry become solid barriers for the car's body.
 SURFACES = {
     "ROAD":   dict(FRICTION=0.99, DAMPING=0, WAV="", WAV_PITCH=0, FF_EFFECT="NULL", DIRT_ADDITIVE=0, IS_VALID_TRACK=1,
                    SIN_HEIGHT=0, SIN_LENGTH=0, VIBRATION_GAIN=0, VIBRATION_LENGTH=0),
@@ -20,8 +21,6 @@ SURFACES = {
                    SIN_HEIGHT=0, SIN_LENGTH=0, VIBRATION_GAIN=0.2, VIBRATION_LENGTH=0.5),
     "GRAVEL": dict(FRICTION=0.70, DAMPING=0.05, WAV="gravel.wav", WAV_PITCH=0, FF_EFFECT="NULL", DIRT_ADDITIVE=1, IS_VALID_TRACK=0,
                    SIN_HEIGHT=0.02, SIN_LENGTH=0.4, VIBRATION_GAIN=0.3, VIBRATION_LENGTH=0.5),
-    "WALL":   dict(FRICTION=0, DAMPING=0, WAV="", WAV_PITCH=0, FF_EFFECT="NULL", DIRT_ADDITIVE=0, IS_VALID_TRACK=0,
-                   SIN_HEIGHT=0, SIN_LENGTH=0, VIBRATION_GAIN=0, VIBRATION_LENGTH=0),
 }
 GATE_HALF_WIDTH = 8.0
 

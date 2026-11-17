@@ -123,3 +123,15 @@ def test_cli_flip_walls_option(tmp_path):
     out = tmp_path / "gta_ls"
     cli.main(["--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
     assert (out / "gta_ls_downtown.kn5").exists()
+
+
+def test_walls_are_not_listed_as_a_drivable_surface(tmp_path):
+    # AC treats every surfaces.ini entry as ground for the wheels; walls must stay out to be solid barriers
+    out = tmp_path / "gta_ls"
+    sq = Mesh([(0, 0, 0), (1, 0, 0), (0, 0, -1)], [0, 2, 1])
+    write_track(out, "downtown", {"ROAD": sq, "WALL": sq}, start_gta=(1, 2, 3, 0))
+    s = configparser.ConfigParser()
+    s.read(out / "downtown" / "data" / "surfaces.ini")
+    assert [s[sec]["KEY"] for sec in s.sections()] == ["ROAD"]
+    m, _ = read_kn5(out / "gta_ls_downtown.kn5")
+    assert any(n.startswith("1WALL") for n in m)
