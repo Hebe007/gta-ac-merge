@@ -43,6 +43,19 @@ def files_covering(per_file: dict, x: float, y: float) -> list[tuple[str, int]]:
     return out
 
 
+def probe(per_file: dict, x: float, y: float, count: int = 8) -> list[str]:
+    """The triangles whose centres are nearest (x, y), one readable line each."""
+    near = []
+    for name, tris in per_file.items():
+        for t in tris:
+            cx = (t.a[0] + t.b[0] + t.c[0]) / 3
+            cy = (t.a[1] + t.b[1] + t.c[1]) / 3
+            near.append((math.hypot(cx - x, cy - y), name, t))
+    near.sort(key=lambda n: n[0])
+    fmt = lambda p: "(%.2f, %.2f, %.2f)" % p
+    return [f"{d:6.1f} m  {name}  {t.material}  {fmt(t.a)} {fmt(t.b)} {fmt(t.c)}" for d, name, t in near[:count]]
+
+
 def coverage(tris, x: float, y: float):
     """GTA bounding box of all triangles, and the horizontal distance from (x, y) to the nearest triangle centre."""
     pts = [p for t in tris for p in (t.a, t.b, t.c)]
@@ -109,6 +122,9 @@ def main(argv: list[str] | None = None) -> None:
         cover = files_covering(per_file, sx, sy)
         logging.warning("files whose area contains the start: %s",
                         ", ".join(f"{n} ({c} triangles)" for n, c in cover) or "none")
+        logging.warning("nearest triangles to the start (distance, file, material, corners):")
+        for line in probe(per_file, sx, sy):
+            logging.warning("  %s", line)
     else:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
     write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided)

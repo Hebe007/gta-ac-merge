@@ -88,3 +88,11 @@ def test_files_covering_point():
     from surfacegen.ybn_xml import Tri
     per_file = {"a.xml": [Tri((0, 0, 0), (10, 0, 0), (0, 10, 0), "T")], "b.xml": [Tri((50, 50, 0), (60, 50, 0), (50, 60, 0), "T")]}
     assert files_covering(per_file, 2, 2) == [("a.xml", 1)]
+
+
+def test_probe_lists_nearest_triangles():
+    from surfacegen.cli import probe
+    from surfacegen.ybn_xml import Tri
+    per_file = {"a.xml": [Tri((0, 0, 1), (2, 0, 1), (0, 2, 1), "TARMAC"), Tri((90, 90, 0), (91, 90, 0), (90, 91, 0), "GRASS")]}
+    lines = probe(per_file, 1, 1, count=1)
+    assert len(lines) == 1 and "a.xml" in lines[0] and "TARMAC" in lines[0]
