@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--no-cache", action="store_true", help="always read the XML, don't write a cache")
     a = ap.parse_args(argv)
     # stdout, not stderr: PowerShell turns captured stderr lines into red "NativeCommandError" noise
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout, force=True)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout)
     if a.engine == "bulk":
         _run_bulk(a)
     else:
