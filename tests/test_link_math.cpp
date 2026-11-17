@@ -118,3 +118,16 @@ TEST_CASE("rotate turns a vector by a quaternion") {
   checkVec(rotate(yaw90, {0, 1, 0}), {-1, 0, 0}, 1e-4f);
   checkVec(rotate({0, 0, 0, 1}, {0, 0, 1}), {0, 0, 1});
 }
+
+TEST_CASE("followVelocity: drives toward the target, snaps when far behind") {
+  Follow f = followVelocity({10, 0, 0}, {9.5f, 0, 0}, {20, 0, 0}, 10.f, 2.f);
+  CHECK_FALSE(f.snap);
+  checkVec(f.vel, {25, 0, 0});  // 20 m/s plus 0.5 m error * 10 /s
+  CHECK(followVelocity({10, 0, 0}, {5, 0, 0}, {0, 0, 0}, 10.f, 2.f).snap);
+}
+
+TEST_CASE("steerInputValue: 0.5 centre, 0 full left, 1 full right") {
+  CHECK(steerInputValue(0.f) == doctest::Approx(0.5f));
+  CHECK(steerInputValue(1.f) == doctest::Approx(0.f));   // bias +1 = full left
+  CHECK(steerInputValue(-1.f) == doctest::Approx(1.f));
+}

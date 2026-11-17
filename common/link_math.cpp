@@ -111,3 +111,11 @@ Vec3 rotate(Quat q, Vec3 v) {
   Quat r = qmul(qmul(q, p), Quat{-q.x, -q.y, -q.z, q.w});
   return {r.x, r.y, r.z};
 }
+
+Follow followVelocity(Vec3 target, Vec3 current, Vec3 targetVel, float gain, float snapMeters) {
+  Vec3 err = sub(target, current);
+  if (length(err) > snapMeters) return {true, targetVel};
+  return {false, add(targetVel, mul(err, gain))};
+}
+
+float steerInputValue(float bias) { return std::clamp(0.5f - 0.5f * bias, 0.f, 1.f); }

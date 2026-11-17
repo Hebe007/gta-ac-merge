@@ -63,4 +63,5 @@ inline void setVehicleFixed(Vehicle v) { invoke<Void>(0x115722B1B9C14C1C, v); }
 inline Hash getEntityModel(Entity e) { return invoke<Hash>(0x9F47B058362C84B5, e); }
 inline void getModelDimensions(Hash h, Vector3* mn, Vector3* mx) { invoke<Void>(0x03E8D3D5F549087A, h, mn, mx); }
 inline void setVehicleSteerBias(Vehicle v, float b) { invoke<Void>(0x42A8EC77D5150CBE, v, b); }
+inline void setControlValueNextFrame(int group, int control, float v) { invoke<BOOL>(0xE8A25867FBA3B05E, group, control, v); }
 }  // namespace nat

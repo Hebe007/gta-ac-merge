@@ -36,3 +36,11 @@ bool validBasis(Vec3 forward, Vec3 up);
 
 // Rotate a vector by a unit quaternion.
 Vec3 rotate(Quat q, Vec3 v);
+
+// Velocity that makes a physically simulated car follow a moving target: target velocity plus a correction
+// proportional to the position error. snap = too far behind, teleport instead.
+struct Follow { bool snap; Vec3 vel; };
+Follow followVelocity(Vec3 target, Vec3 current, Vec3 targetVel, float gainPerSec, float snapMeters);
+// GTA steer bias (-1 full right .. +1 full left) as a player-input value for SET_CONTROL_VALUE_NEXT_FRAME
+// on the steering axis (0 = full left, 0.5 = centre, 1 = full right).
+float steerInputValue(float bias);
