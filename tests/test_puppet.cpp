@@ -60,12 +60,22 @@ TEST_CASE("F8 links: spawns the configured car at AC's position and puts the pla
   CHECK(g.pos.y == doctest::Approx(200));
 }
 
-TEST_CASE("refuses to link while AC isn't sending") {
+TEST_CASE("refuses to link when it can't see AC's data at all") {
   shm = {}; FakeGame g; Puppet p(g, "sultan");
   g.key = true;
   p.tick(1.0, nullptr);
   CHECK_FALSE(p.linked());
-  CHECK(g.shown("Assetto Corsa"));
+  CHECK(g.shown("can't see"));
+}
+
+TEST_CASE("refuses to link when AC's data stopped updating, and says so") {
+  shm = {}; FakeGame g; Puppet p(g, "sultan");
+  acWrite({0, 30, 0});
+  p.tick(1.0, &shm);
+  g.key = true;
+  p.tick(2.0, &shm);  // seen, but no update for a second
+  CHECK_FALSE(p.linked());
+  CHECK(g.shown("not updating"));
 }
 
 TEST_CASE("follows AC every frame and shows speed and gear") {

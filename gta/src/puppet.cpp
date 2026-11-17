@@ -51,8 +51,12 @@ void Puppet::tick(double now, const volatile LinkState* raw) {
 }
 
 void Puppet::link(const LinkFrame& f, double now) {
-  if (!f.connected || !f.fresh) {
-    say("GTA link: start Assetto Corsa with the GTA Link app first", now);
+  if (!f.connected) {
+    say("GTA link: can't see Assetto Corsa's GTA Link data - is the app running?", now);
+    return;
+  }
+  if (!f.fresh) {
+    say("GTA link: Assetto Corsa's data is not updating - is AC paused or asleep in the background?", now);
     return;
   }
   veh_ = g_.spawnVehicle(model_, f.pose.pos, f.headingDeg);
