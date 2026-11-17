@@ -72,7 +72,10 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   lift_ = (f.rideHeight > 0 && gtaH > 0 ? gtaH - f.rideHeight : 0.f) + trim_;
   last_ = f.pose;
   haveLast_ = true;
-  say("GTA link on (F8 to turn off)", now);
+  char m[160];
+  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", f.rideHeight, gtaH,
+                lift_);
+  say(m, now);
 }
 
 void Puppet::unlink(const std::string& why, double now) {

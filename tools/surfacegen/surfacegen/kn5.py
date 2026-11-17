@@ -38,9 +38,19 @@ def start_matrix(gta_pos: tuple[float, float, float], gta_heading_deg: float) ->
     return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, x, z, -y, 1]
 
 
+ALWAYS_DOUBLE_SIDED = ("WALL",)  # GTA's wall winding varies; AC must stop the car from either side
+
+
+def _flip_added(m: Mesh) -> Mesh:
+    return Mesh(m.vertices, m.indices + [i for t in range(0, len(m.indices), 3)
+                                         for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])
+
+
 def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float]],
               visible: bool = False, double_sided: bool = False) -> None:
-    """visible: draw the meshes (debug). double_sided: add every triangle again with opposite winding."""
+    """visible: draw the meshes (debug). double_sided: add every triangle again with opposite winding
+    (walls always get this)."""
+    meshes = {k: _flip_added(m) if k in ALWAYS_DOUBLE_SIDED and not double_sided else m for k, m in meshes.items()}
     if double_sided:
         meshes = {k: Mesh(m.vertices, m.indices + [i for t in range(0, len(m.indices), 3)
                                                    for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])

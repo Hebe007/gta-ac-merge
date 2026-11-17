@@ -60,4 +60,6 @@ inline void setVehicleStrong(Vehicle v, BOOL on) { invoke<Void>(0x3E8C8727991A8A
 inline void setDisableVehiclePetrolTankDamage(Vehicle v, BOOL on) { invoke<Void>(0x37C8252A7C92D017, v, on); }
 inline void setVehicleEngineCanDegrade(Vehicle v, BOOL on) { invoke<Void>(0x983765856F2564F9, v, on); }
 inline void setVehicleFixed(Vehicle v) { invoke<Void>(0x115722B1B9C14C1C, v); }
+inline Hash getEntityModel(Entity e) { return invoke<Hash>(0x9F47B058362C84B5, e); }
+inline void getModelDimensions(Hash h, Vector3* mn, Vector3* mx) { invoke<Void>(0x03E8D3D5F549087A, h, mn, mx); }
 }  // namespace nat

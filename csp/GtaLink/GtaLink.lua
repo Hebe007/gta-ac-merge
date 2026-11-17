@@ -14,21 +14,32 @@ local TELEPORT_METERS = 20
 
 local function set3(dst, v) dst[0], dst[1], dst[2] = v.x, v.y, v.z end
 
--- Height of car.position above the tyre contact patches, along the car's up (0 if CSP doesn't expose them).
+-- Height of car.position above the tyre contact patches, along the car's up (0 if CSP exposes neither way).
+local rideSource = 'none'
+local function along(car, v) return v.x * car.up.x + v.y * car.up.y + v.z * car.up.z end
 local function rideHeight(car)
-  local ok, h = pcall(function()
+  local ok, h = pcall(function()  -- tyre contact points
     local sum, n = 0, 0
     for i = 0, 3 do
       local c = car.wheels[i].contactPoint
-      if c then
-        local d = car.position - c
-        sum = sum + d.x * car.up.x + d.y * car.up.y + d.z * car.up.z
-        n = n + 1
-      end
+      if c then sum, n = sum + along(car, car.position - c), n + 1 end
     end
-    return n > 0 and sum / n or 0
+    if n > 0 then rideSource = 'contact'; return sum / n end
+    return 0
   end)
-  return ok and h or 0
+  if ok and h > 0.05 then return h end
+  ok, h = pcall(function()  -- wheel centres plus tyre radius
+    local sum, n = 0, 0
+    for i = 0, 3 do
+      local w = car.wheels[i]
+      if w.position and w.tyreRadius then sum, n = sum + along(car, car.position - w.position) + w.tyreRadius, n + 1 end
+    end
+    if n > 0 then rideSource = 'wheels'; return sum / n end
+    return 0
+  end)
+  if ok and h > 0.05 then return h end
+  rideSource = 'none'
+  return 0
 end
 
 function script.update(dt)
@@ -68,4 +79,5 @@ function script.windowMain(dt)
   ui.text('GTA Link ' .. status)
   ui.text(string.format('updates: %d   resets: %d', updates, resets))
   if lastPos then ui.text(string.format('pos  %.1f  %.1f  %.1f', lastPos.x, lastPos.y, lastPos.z)) end
+  ui.text(string.format('ride height %.2f m (%s)', mem and mem[K.rideHeight] or 0, rideSource))
 end

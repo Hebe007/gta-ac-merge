@@ -84,3 +84,11 @@ def test_debug_visible_and_double_sided(tmp_path):
     fwd = tris(square())
     back = tris(m)[len(fwd):]
     assert back == [(a, c, b) for a, b, c in fwd]  # same triangles, opposite winding
+
+
+def test_walls_are_double_sided_by_default_floors_are_not(tmp_path):
+    p = tmp_path / "t.kn5"
+    write_kn5(p, {"ROAD": square(), "WALL": square(5)}, {})
+    m = read_kn5(p)[0]
+    assert len(m["1ROAD_0"].indices) == len(square().indices)
+    assert len(m["1WALL_0"].indices) == 2 * len(square().indices)

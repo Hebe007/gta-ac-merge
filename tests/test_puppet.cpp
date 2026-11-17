@@ -183,3 +183,12 @@ TEST_CASE("without AC ride height only the trim applies") {
   acWrite({1, 30, 0}); p.tick(1.016, &shm);
   CHECK(g.lastPose.pos.z == doctest::Approx(30.1f));
 }
+
+TEST_CASE("link message shows the height match") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  g.originH = 0.62f;
+  acWrite({0, 30, 0}, 0.30f); g.key = true; p.tick(1.0, &shm);
+  CHECK(p.message().find("AC 0.30") != std::string::npos);
+  CHECK(p.message().find("GTA 0.62") != std::string::npos);
+  CHECK(p.message().find("+0.32") != std::string::npos);
+}

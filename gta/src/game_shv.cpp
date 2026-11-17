@@ -87,4 +87,10 @@ bool ShvGame::linkKeyPressed() {
   return pressed;
 }
 
-float ShvGame::originHeight(int v) { return nat::getEntityHeightAboveGround(v); }
+float ShvGame::originHeight(int v) {
+  // The bottom of the model's bounding box is the bottom of the tyres; doesn't depend on the ground being loaded.
+  Vector3 mn{}, mx{};
+  nat::getModelDimensions(nat::getEntityModel(v), &mn, &mx);
+  if (mn.z < -0.05f) return -mn.z;
+  return nat::getEntityHeightAboveGround(v);
+}
