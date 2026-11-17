@@ -169,3 +169,10 @@ def test_flat_folder_still_works(tmp_path):
     _touch(tmp_path / "a_0.ybn.xml")
     _touch(tmp_path / "hi@a_0.ybn.xml")
     assert [p.name for p in pick_sources(tmp_path)] == ["a_0.ybn.xml"]
+
+
+def test_ma_files_are_ignored(tmp_path):
+    from surfacegen.cli import pick_sources
+    for f in ["base/id1_24_0.ybn.xml", "base/ma@id1_24_0.ybn.xml", "base/hi@id1_24_0.ybn.xml", "base/ma@id1_99_0.ybn.xml"]:
+        _touch(tmp_path / f)
+    assert [p.name for p in pick_sources(tmp_path)] == ["id1_24_0.ybn.xml"]

@@ -43,10 +43,16 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.
 
 ## Exporting the full map's collision (CodeWalker)
-1. RPF Explorer: search `.ybn`, sort by **Type** and keep the **Static Collisions** rows. Skip names starting `hi@`.
-2. Sort by **Path** and export each source into its own folder under `work\xml\`, named after it:
-   - paths starting `x64?.rpf` -> `work\xml\base\`
-   - `update\update.rpf\...` -> `work\xml\update\`
-   - `update\x64\dlcpacks\<pack>\...` -> `work\xml\<pack>\` (e.g. `patchday27ng`, `mpheist`)
-   - anything from a graphics/map mod folder (e.g. `onigiri`) -> `work\xml\mods\`
-3. The generator keeps the newest copy of each file: base < DLC packs < patchdayN (by number) < update < mods.
+RPF Explorer: search `.ybn`, sort by **Path**. Select whole blocks (click first row, Shift+click last row), including
+`hi@` and `ma@` files (the generator ignores `ma@` and uses `hi@` only where no normal file exists), and
+**Export XML** each block into its own folder under `work\xml\`:
+
+| Path starts with | Export into |
+|---|---|
+| `onigiri\...` (NaturalVision) | `work\xml\mods\` |
+| `update\update.rpf\...` | `work\xml\update\` |
+| `update\x64\dlcpacks\patchdayNNng\...` | `work\xml\patchdayNNng\` (one folder per patchday) |
+| `update\x64\dlcpacks\<any other pack>\...` | `work\xml\dlc\` (all together) |
+| `x64a.rpf` ... `x64w.rpf` | `work\xml\base\` |
+
+The generator keeps the newest copy of each file: base < dlc < patchdays (by number) < update < mods.

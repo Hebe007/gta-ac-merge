@@ -48,6 +48,8 @@ def pick_sources(xml_dir: Path, prefer: str = "normal") -> list[Path]:
     for rank, folder in folders:
         for p in folder.iterdir():
             name = p.name.lower()
+            if name.startswith("ma@"):
+                continue  # another special-purpose collision layer; cars drive on the normal files
             if p.is_file() and name.endswith(".xml") and (name not in best or rank > best[name][0]):
                 best[name] = (rank, p)
     keep = []
