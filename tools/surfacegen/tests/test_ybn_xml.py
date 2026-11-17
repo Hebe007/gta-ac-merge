@@ -69,3 +69,18 @@ def test_materials_dat_given_as_folder(tmp_path):
     folder.mkdir()
     (folder / "materials.dat").write_text((FIX / "materials.dat").read_text())
     assert read_materials_dat(folder)[:2] == ["DEFAULT", "TARMAC"]
+
+
+def test_space_separated_numbers_like_real_codewalker_export(names):
+    a = read_ybn_xml(FIX / "small.ybn.xml", names)
+    b = read_ybn_xml(FIX / "spaces.ybn.xml", names)
+    assert b == a
+
+
+def test_single_line_matrix_and_mixed_separators(tmp_path, names):
+    src = (FIX / "small.ybn.xml").read_text()
+    start, end = src.index("<CompositeTransform>"), src.index("</CompositeTransform>")
+    src = src[:start] + "<CompositeTransform>1 0 0 0 0 1 0 0 0 0 1 0 100 200 0 1" + src[end:]
+    src = src.replace("4, 0, 0\n", "4 0 0\n")
+    (tmp_path / "x.ybn.xml").write_text(src)
+    assert read_ybn_xml(tmp_path / "x.ybn.xml", names) == read_ybn_xml(FIX / "small.ybn.xml", names)

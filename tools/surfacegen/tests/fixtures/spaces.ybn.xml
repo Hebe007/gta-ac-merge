@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written test fixture in CodeWalker's YBN XML shape. Invented coordinates, no game data. -->
+<BoundsFile>
+  <Bounds type="Composite">
+    <Children>
+      <Item type="GeometryBVH">
+        <CompositeTransform>
+          1 0 0 0
+          0 1 0 0
+          0 0 1 0
+          100 200 0 1
+        </CompositeTransform>
+        <GeometryCenter x="10" y="0" z="5" />
+        <Materials>
+          <Item><Type value="1" /></Item>
+          <Item><Type value="2" /></Item>
+        </Materials>
+        <Vertices>
+          0, 0, 0
+          4, 0, 0
+          0, 4, 0
+          4, 4, 0
+        </Vertices>
+        <Polygons>
+          <Triangle m="0" v1="0" v2="1" v3="2" f1="0" f2="0" f3="0" />
+          <Triangle m="1" v1="1" v2="3" v3="2" f1="0" f2="0" f3="0" />
+        </Polygons>
+      </Item>
+      <Item type="Geometry">
+        <GeometryCenter x="0" y="0" z="0" />
+        <Materials>
+          <Item><Type value="3" /></Item>
+        </Materials>
+        <Vertices>
+          0, 0, 0
+          1, 1, 0
+          1, 0, 1
+          0, 1, 1
+          5, 5, 5
+        </Vertices>
+        <Polygons>
+          <Box m="0" v1="0" v2="1" v3="2" v4="3" />
+          <Sphere m="0" v="4" radius="1" />
+        </Polygons>
+      </Item>
+    </Children>
+  </Bounds>
+</BoundsFile>

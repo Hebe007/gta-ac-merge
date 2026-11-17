@@ -6,6 +6,7 @@ CompositeTransform is a row-vector 4x4 (SharpDX): p' = [x y z 1] * M, translatio
 from __future__ import annotations
 
 import logging
+import re
 import xml.etree.ElementTree as ET
 from collections import Counter
 from dataclasses import dataclass
@@ -109,17 +110,25 @@ def _outward(t, centre):
     return t if sum(n[i] * mid[i] for i in range(3)) >= 0 else (a, c, b)
 
 
-def _raw_v3(node) -> list[V3]:
+def _numbers(node) -> list[float]:
+    """All numbers in an element's text; CodeWalker separates them with spaces and/or commas."""
     if node is None or not node.text:
         return []
-    return [tuple(float(x) for x in line.split(",")) for line in node.text.strip().splitlines() if line.strip()]
+    return [float(x) for x in re.split(r"[,\s]+", node.text.strip()) if x]
+
+
+def _raw_v3(node) -> list[V3]:
+    n = _numbers(node)
+    if len(n) % 3:
+        raise ValueError(f"<{node.tag}> has {len(n)} numbers, not a multiple of 3")
+    return [tuple(n[i:i + 3]) for i in range(0, len(n), 3)]
 
 
 def _matrix(node) -> list[list[float]]:
-    if node is None or not node.text or not node.text.strip():
+    n = _numbers(node)
+    if len(n) != 16:
         return IDENTITY
-    rows = [[float(x) for x in line.split(",")] for line in node.text.strip().splitlines() if line.strip()]
-    return rows if len(rows) == 4 else IDENTITY
+    return [n[i:i + 4] for i in range(0, 16, 4)]
 
 
 def _xform(m, p: V3) -> V3:
