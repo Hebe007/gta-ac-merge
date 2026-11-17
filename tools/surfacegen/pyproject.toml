@@ -1,0 +1,9 @@
+[project]
+name = "surfacegen"
+version = "0.1.0"
+description = "Turn GTA V collision (CodeWalker .ybn XML) into an invisible Assetto Corsa track"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

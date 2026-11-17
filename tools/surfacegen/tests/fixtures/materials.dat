@@ -1,0 +1,6 @@
+# Hand-written test fixture in the shape of GTA's materials.dat (name first on each line).
+1.0
+DEFAULT 1.0 0.5
+TARMAC 1.0 0.5
+GRASS 0.6 0.5
+CONCRETE 1.0 0.5
