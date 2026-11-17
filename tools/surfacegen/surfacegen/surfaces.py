@@ -82,3 +82,47 @@ def _normal(a, b, c):
     u = [b[i] - a[i] for i in range(3)]
     v = [c[i] - a[i] for i in range(3)]
     return (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+
+
+def weld(tris: list[Tri], tol: float) -> tuple[list[Tri], int, int]:
+    """Snap vertices closer than `tol` metres onto one shared point, across all pieces and files, so neighbouring
+    collision pieces share edges instead of leaving hairline cracks. Triangles that collapse are dropped.
+    Returns (triangles, vertices merged, triangles dropped)."""
+    if tol <= 0:
+        return list(tris), 0, 0
+    cell = 2 * tol  # with cells twice the tolerance, a neighbour can only be in 8 of the 27 nearby cells
+    grid: dict[tuple[int, int, int], list[V3]] = {}
+    snap: dict[V3, V3] = {}
+    merged = 0
+    tol2 = tol * tol
+    for t in tris:
+        for p in (t.a, t.b, t.c):
+            if p in snap:
+                continue
+            fx, fy, fz = p[0] / cell, p[1] / cell, p[2] / cell
+            cx, cy, cz = math.floor(fx), math.floor(fy), math.floor(fz)
+            ox = -1 if fx - cx < 0.5 else 1
+            oy = -1 if fy - cy < 0.5 else 1
+            oz = -1 if fz - cz < 0.5 else 1
+            best, best_d = None, tol2
+            for dx in (0, ox):
+                for dy in (0, oy):
+                    for dz in (0, oz):
+                        for q in grid.get((cx + dx, cy + dy, cz + dz), ()):
+                            d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 + (q[2] - p[2]) ** 2
+                            if d < best_d:
+                                best, best_d = q, d
+            if best is None:
+                snap[p] = p
+                grid.setdefault((cx, cy, cz), []).append(p)
+            else:
+                snap[p] = best
+                merged += 1
+    out, dropped = [], 0
+    for t in tris:
+        a, b, c = snap[t.a], snap[t.b], snap[t.c]
+        if a == b or b == c or a == c:
+            dropped += 1
+            continue
+        out.append(t if (a, b, c) == (t.a, t.b, t.c) else Tri(a, b, c, t.material))
+    return out, merged, dropped

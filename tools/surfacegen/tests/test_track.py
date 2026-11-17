@@ -98,3 +98,13 @@ def test_probe_lists_nearest_triangles():
     per_file = {"a.xml": [Tri((0, 0, 1), (2, 0, 1), (0, 2, 1), "TARMAC"), Tri((90, 90, 0), (91, 90, 0), (90, 91, 0), "GRASS")]}
     lines = probe(per_file, 1, 1, count=1)
     assert len(lines) == 1 and "a.xml" in lines[0] and "TARMAC" in lines[0]
+
+
+def test_cli_welds_by_default_and_reports(tmp_path, caplog):
+    caplog.set_level("INFO")
+    cli.main(["--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls"), "--layout", "downtown", "--start", "105,202,6,0"])
+    assert "welded" in caplog.text
+    caplog.clear()
+    cli.main(["--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
+              "--weld", "0"])
+    assert "welded" not in caplog.text

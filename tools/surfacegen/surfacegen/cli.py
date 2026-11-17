@@ -9,7 +9,7 @@ from pathlib import Path
 
 from collections import Counter
 
-from .surfaces import _inside, build_meshes, classify, load_table
+from .surfaces import _inside, build_meshes, classify, load_table, weld
 from .track import write_track
 from .ybn_xml import read_materials_dat, read_ybn_xml
 
@@ -101,6 +101,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--start", type=_floats(4), required=True)
     ap.add_argument("--prefer", choices=("normal", "hi"), default="normal",
                     help="which collision to use when both a normal and an hi@ file exist")
+    ap.add_argument("--weld", type=float, default=0.05,
+                    help="snap vertices closer than this many metres together to close cracks (0 = off)")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     a = ap.parse_args(argv)
@@ -110,6 +112,9 @@ def main(argv: list[str] | None = None) -> None:
     files = pick_files(a.xml_dir, a.prefer)
     per_file = {f.name: read_ybn_xml(f, names) for f in files}
     tris = [t for ts in per_file.values() for t in ts]
+    if a.weld > 0:
+        tris, merged, dropped = weld(tris, a.weld)
+        logging.info("welded %d vertices within %.0f cm; dropped %d collapsed triangles", merged, a.weld * 100, dropped)
     small = [f"{n} ({len(ts)})" for n, ts in per_file.items() if len(ts) < 50]
     if small:
         logging.warning("files with almost no collision (possible holes): %s", ", ".join(small))

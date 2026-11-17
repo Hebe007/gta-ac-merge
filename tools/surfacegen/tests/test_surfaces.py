@@ -82,3 +82,50 @@ def test_building_materials_are_known_and_trees_are_walls(caplog):
         assert classify(tri(mat=m), table) == "ROAD", m
     assert classify(tri(mat="TREE_BARK"), table) == "WALL"
     assert "unknown" not in caplog.text
+
+
+from surfacegen.surfaces import weld  # noqa: E402
+
+
+def test_weld_snaps_nearby_vertices_across_pieces():
+    a = Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "TARMAC")
+    b = Tri((1.01, 0.0, 0.0), (1, 1, 0), (0.0, 1.02, 0.0), "TARMAC")  # touches a, 1-2 cm off
+    out, merged, dropped = weld([a, b], 0.05)
+    pts_a = {out[0].a, out[0].b, out[0].c}
+    pts_b = {out[1].a, out[1].b, out[1].c}
+    assert len(pts_a & pts_b) == 2
+    assert merged == 2 and dropped == 0
+
+
+def test_weld_keeps_vertices_further_apart():
+    a = Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "TARMAC")
+    b = Tri((1.10, 0, 0), (2, 0, 0), (1.1, 1, 0), "TARMAC")
+    out, merged, _ = weld([a, b], 0.05)
+    assert merged == 0 and out == [a, b]
+
+
+def test_weld_works_across_grid_cell_boundaries():
+    # 0.099 and 0.101 straddle a 0.1 m cell edge but are 2 mm apart
+    a = Tri((0.099, 0, 0), (1, 0, 0), (0, 1, 0), "T")
+    b = Tri((0.101, 0, 0), (5, 0, 0), (5, 5, 0), "T")
+    out, merged, _ = weld([a, b], 0.05)
+    assert merged == 1 and out[0].a == out[1].a
+
+
+def test_weld_drops_collapsed_triangles():
+    sliver = Tri((0, 0, 0), (0.01, 0, 0), (0, 1, 0), "T")  # two corners 1 cm apart collapse
+    out, _, dropped = weld([sliver], 0.05)
+    assert out == [] and dropped == 1
+
+
+def test_weld_zero_tolerance_is_a_no_op():
+    a = Tri((0, 0, 0), (0.001, 0, 0), (0, 1, 0), "T")
+    assert weld([a], 0)[0] == [a]
+
+
+def test_weld_is_fast_enough_for_a_city_block():
+    import time
+    tris = [Tri((i, j, 0), (i + 1, j, 0), (i, j + 1, 0), "T") for i in range(400) for j in range(400)]
+    t0 = time.perf_counter()
+    weld(tris, 0.05)
+    assert time.perf_counter() - t0 < 15
