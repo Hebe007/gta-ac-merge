@@ -21,6 +21,7 @@ struct FakeGame : Game {
   std::string spawnedModel;
   float originH = 0.55f;
   float steer = 99;
+  float gas = -1, brake = -1;
 
   bool playerDeadOrArrested() override { return dead; }
   int playerVehicle() override { return inVehicle; }
@@ -38,6 +39,7 @@ struct FakeGame : Game {
   bool linkKeyPressed() override { bool k = key; key = false; return k; }
   float originHeight(int) override { return originH; }
   void setSteer(int, float b) override { steer = b; }
+  void setPedals(int, float g, float b) override { gas = g; brake = b; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -276,4 +278,21 @@ TEST_CASE("really under the map is still detected") {
   acWrite({0, 10, 0}); g.key = true; p.tick(1.0, &shm);  // 10 m below the lowest ground
   acWrite({0, 10, 0}); p.tick(1.016, &shm);
   CHECK(g.shown("Off the map"));
+}
+
+TEST_CASE("AC's throttle and brake go to GTA so its engine revs and brake lights work") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  LinkState s = shm; s.gas = 0.7f; s.brake = 0.2f; seqWrite(&shm, s);
+  p.tick(1.016, &shm);
+  CHECK(g.gas == doctest::Approx(0.7f));
+  CHECK(g.brake == doctest::Approx(0.2f));
+}
+
+TEST_CASE("pedals can be switched off") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.pedals = false});
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  LinkState s = shm; s.gas = 0.7f; seqWrite(&shm, s);
+  p.tick(1.016, &shm);
+  CHECK(g.gas == doctest::Approx(-1));
 }

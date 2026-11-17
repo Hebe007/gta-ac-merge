@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <thread>
 
-static_assert(sizeof(LinkState) == 120, "LinkState layout is shared with CSP Lua");
+static_assert(sizeof(LinkState) == 128, "LinkState layout is shared with CSP Lua");
 static_assert(offsetof(LinkState, magic) == 0);
 static_assert(offsetof(LinkState, version) == 4);
 static_assert(offsetof(LinkState, seq) == 8);
@@ -24,6 +24,8 @@ static_assert(offsetof(LinkState, massKg) == 104);
 static_assert(offsetof(LinkState, gear) == 108);
 static_assert(offsetof(LinkState, rideHeight) == 112);
 static_assert(offsetof(LinkState, steerLockDeg) == 116);
+static_assert(offsetof(LinkState, gas) == 120);
+static_assert(offsetof(LinkState, brake) == 124);
 static_assert(sizeof(HitBlock) == 392, "HitBlock layout is shared with CSP Lua");
 
 static LinkState filled(float v) {

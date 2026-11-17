@@ -13,6 +13,7 @@ struct PuppetOptions {
   bool steerInvert = false;  // flip steering if GTA's wheels turn the wrong way
   float steerScale = 1;     // GTA wheel angle per AC wheel angle (lower if GTA hits full lock too early)
   float steerOffset = 0;    // added to the centre (-1..1, + = left) if GTA's wheels aren't straight
+  bool pedals = true;       // pass AC's throttle/brake to GTA (rev counter, brake lights)
 };
 
 class Puppet {

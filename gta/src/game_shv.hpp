@@ -27,6 +27,7 @@ class ShvGame : public Game {
   bool linkKeyPressed() override;
   float originHeight(int vehicle) override;
   void setSteer(int vehicle, float bias) override;
+  void setPedals(int vehicle, float gas, float brake) override;
 
  private:
   ShvOptions opt_;

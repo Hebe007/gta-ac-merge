@@ -7,8 +7,8 @@ import linkpeek  # noqa: E402
 
 
 def test_decode_matches_layout():
-    assert linkpeek.SIZE == 120
-    vals = [0x47544143, 1, 42, 3, 1, 2, 3, 0, 0, -1, 0, 1, 0, 5, 0, 0, 0, 0, 0, 9, 9, 9, 9, 12.5, 4200, 88, 1300, 4, 0.31, 450]
+    assert linkpeek.SIZE == 128
+    vals = [0x47544143, 1, 42, 3, 1, 2, 3, 0, 0, -1, 0, 1, 0, 5, 0, 0, 0, 0, 0, 9, 9, 9, 9, 12.5, 4200, 88, 1300, 4, 0.31, 450, 0.6, 0.1]
     d = linkpeek.decode(struct.pack(linkpeek.FMT, *vals))
     assert d["magic_ok"] and d["seq"] == 42 and d["resets"] == 3
     assert d["pos"] == (1, 2, 3) and d["fwd"] == (0, 0, -1)
@@ -17,6 +17,6 @@ def test_decode_matches_layout():
 
 
 def test_raw_lines_show_every_slot():
-    buf = struct.pack("<30I", *range(30))
+    buf = struct.pack("<32I", *range(32))
     lines = linkpeek.raw_lines(buf)
-    assert len(lines) == 30 and "slot  5  int            5" in lines[5]
+    assert len(lines) == 32 and "slot  5  int            5" in lines[5]

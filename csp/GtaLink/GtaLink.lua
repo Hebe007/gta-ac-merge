@@ -72,6 +72,8 @@ function script.update(dt)
   mem[K.rideHeight] = rideHeight(car)
   local okLock, lock = pcall(function() return car.steerLock end)
   mem[K.steerLockDeg] = (okLock and type(lock) == 'number') and lock or 0
+  mem[K.gas] = car.gas or 0
+  mem[K.brake] = car.brake or 0
   seq = seq + 2
   mem[K.seq] = seq  -- even: done
   updates = updates + 1

@@ -41,6 +41,7 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 - `steer_offset`: centre correction (`+` = left), e.g. `0.05` if GTA's wheels point slightly right when you drive straight.
 - `engine_audio`: `voltic` (default) keeps the GTA engine running with an electric car's near-silent sound so
   the dashboard works; `off` turns the engine off (silent, dashboard dark).
+- `pedals`: `1` (default) passes AC's throttle and brake to GTA (rev counter moves, brake lights); `0` = off.
 - `gta_damage`: `0` (default) the GTA car is damage-proof; `1` lets GTA damage it.
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.
 

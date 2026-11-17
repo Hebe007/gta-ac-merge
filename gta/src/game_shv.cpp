@@ -1,4 +1,5 @@
 #include "game_shv.hpp"
+#include <cmath>
 #include "natives_min.hpp"
 
 bool ShvGame::playerDeadOrArrested() {
@@ -75,8 +76,9 @@ void ShvGame::setPose(int v, const Pose& p) {
 
 void ShvGame::disableVehicleControls() {
   // accelerate, brake, steer, handbrake, left/right-only, up/down; exiting the car stays allowed (unlinks)
-  // Steering (59, 63, 64) stays enabled: setSteer feeds AC's steering in as player input so GTA animates it.
-  for (int c : {71, 72, 60, 61, 62, 76, 87, 88, 89, 90}) nat::disableControlAction(0, c);
+  // Steering (59, 63, 64) and pedals (71, 72) stay enabled: setSteer/setPedals feed AC's inputs in as player
+  // input so GTA animates steering, revs and brake lights. Handbrake, flying and exit-related moves stay off.
+  for (int c : {60, 61, 62, 76, 87, 88, 89, 90}) nat::disableControlAction(0, c);
 }
 
 bool ShvGame::groundZ(Vec3 a, float& z) { return nat::getGroundZFor3dCoord(a.x, a.y, a.z, &z); }
@@ -110,4 +112,9 @@ float ShvGame::originHeight(int v) {
 void ShvGame::setSteer(int v, float bias) {
   nat::setVehicleSteerBias(v, bias);
   nat::setControlValueNextFrame(0, 59, steerInputValue(bias));  // VehicleMoveLeftRight
+}
+
+void ShvGame::setPedals(int, float gas, float brake) {
+  nat::setControlValueNextFrame(0, 71, std::fmax(0.f, std::fmin(1.f, gas)));    // VehicleAccelerate
+  nat::setControlValueNextFrame(0, 72, std::fmax(0.f, std::fmin(1.f, brake)));  // VehicleBrake
 }

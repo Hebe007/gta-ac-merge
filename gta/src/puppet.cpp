@@ -37,6 +37,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
         float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
         g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, bias)));
+        if (opt_.pedals) g_.setPedals(veh_, f.gas, f.brake);
         if (offMap(last_.pos)) g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");
         char hud[96];
         std::snprintf(hud, sizeof hud, "%.0f km/h   gear %s   %.0f rpm", f.speedKmh, gearName(f.gear).c_str(), f.rpm);

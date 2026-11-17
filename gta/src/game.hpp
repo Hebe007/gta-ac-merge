@@ -24,4 +24,6 @@ class Game {
   virtual float originHeight(int vehicle) = 0;
   // Front wheel angle as GTA steer bias: -1 full right .. +1 full left. Call every frame.
   virtual void setSteer(int vehicle, float bias) = 0;
+  // Throttle and brake 0..1 as player input: GTA revs its engine (rev counter) and lights the brake lights.
+  virtual void setPedals(int vehicle, float gas, float brake) = 0;
 };

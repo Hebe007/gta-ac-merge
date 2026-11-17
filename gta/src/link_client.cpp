@@ -45,5 +45,7 @@ LinkFrame LinkClient::update(const volatile LinkState* raw, double now) {
   f.rideHeight = last_.rideHeight;
   f.steerDeg = last_.steerDeg;
   f.steerLockDeg = last_.steerLockDeg;
+  f.gas = last_.gas;
+  f.brake = last_.brake;
   return f;
 }
