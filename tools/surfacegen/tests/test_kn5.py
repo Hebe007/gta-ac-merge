@@ -63,3 +63,13 @@ def test_start_matrix_faces_gta_heading():
     assert m[12:15] == pytest.approx([10, 30, -20])  # GTA (10,20,30) -> AC (10,30,-20)
     m90 = start_matrix((0, 0, 0), 90)  # GTA heading 90 = west (-X)
     assert m90[8:11] == pytest.approx([-1, 0, 0], abs=1e-6)
+
+
+def test_large_mesh_writes_fast(tmp_path):
+    import time
+    n = 200_000  # triangles; downtown is ~1M
+    verts = [(float(i % 1000), 0.0, -float(i // 1000)) for i in range(n + 2)]
+    idx = [k for i in range(n) for k in (i, i + 1, i + 2)]
+    t0 = time.perf_counter()
+    write_kn5(tmp_path / "big.kn5", {"ROAD": Mesh(verts, idx)}, {})
+    assert time.perf_counter() - t0 < 10

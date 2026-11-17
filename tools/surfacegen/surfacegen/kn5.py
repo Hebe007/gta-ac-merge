@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import math
 import struct
+import sys
+from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -90,21 +92,28 @@ def _base_node(name: str, matrix: list[float], children: int) -> bytes:
 
 
 def _mesh_node(name: str, m: Mesh) -> bytes:
-    b = struct.pack("<i", NODE_MESH) + _s(name) + struct.pack("<i?", 0, True)
+    b = bytearray(struct.pack("<i", NODE_MESH) + _s(name) + struct.pack("<i?", 0, True))
     b += struct.pack("<???", False, False, False)  # cast shadows, visible, transparent
     b += struct.pack("<i", len(m.vertices))
-    for v in m.vertices:
-        b += struct.pack("<3f3f2f3f", *v, 0, 1, 0, 0, 0, 1, 0, 0)
-    b += struct.pack("<i", len(m.indices)) + struct.pack(f"<{len(m.indices)}H", *m.indices)
+    flat = array("f")
+    for v in m.vertices:  # position, normal (up), uv, tangent
+        flat.extend((v[0], v[1], v[2], 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0))
+    if sys.byteorder != "little":
+        flat.byteswap()
+    b += flat.tobytes()
+    idx = array("H", m.indices)
+    if sys.byteorder != "little":
+        idx.byteswap()
+    b += struct.pack("<i", len(m.indices)) + idx.tobytes()
     b += struct.pack("<II", 0, 0)  # material id, layer
     b += struct.pack("<ff", 0.0, 0.0)  # lod in/out
     lo = [min(v[i] for v in m.vertices) for i in range(3)]
     hi = [max(v[i] for v in m.vertices) for i in range(3)]
     centre = [(lo[i] + hi[i]) / 2 for i in range(3)]
-    radius = max(math.dist(centre, v) for v in m.vertices)
+    radius = math.dist(centre, hi)  # half the bounding-box diagonal contains every vertex
     b += struct.pack("<3ff", *centre, radius)
     b += struct.pack("<?", False)  # renderable
-    return b
+    return bytes(b)
 
 
 # ---- reader (tests only) ----
@@ -158,8 +167,8 @@ def read_kn5(path: Path):
             rm = ReadMesh()
             _shadows, rm.visible, _transparent = r.take("???")
             (nv,) = r.take("i")
-            for _ in range(nv):
-                rm.vertices.append(r.take("3f3f2f3f")[:3])
+            vals = r.take(f"{nv * 11}f")
+            rm.vertices = [tuple(vals[i:i + 3]) for i in range(0, len(vals), 11)]
             (ni,) = r.take("i")
             rm.indices = list(r.take(f"{ni}H"))
             r.take("IIff3ff")
