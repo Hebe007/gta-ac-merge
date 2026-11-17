@@ -23,10 +23,17 @@ def _floats(n: int):
     return parse
 
 
-def pick_files(xml_dir: Path) -> list[Path]:
-    """All exported .xml files; when both "hi@<name>" (high-detail collision) and "<name>" exist, keep only hi@."""
+def pick_files(xml_dir: Path, prefer: str = "normal") -> list[Path]:
+    """All exported .xml files. GTA has a normal ("mover") collision file and a detailed "hi@" one for most
+    blocks; cars drive on the normal one, so by default hi@ is used only where no normal file exists."""
     files = {p.name.lower(): p for p in xml_dir.iterdir() if p.name.lower().endswith(".xml")}
-    keep = [p for name, p in files.items() if not ("hi@" + name) in files]
+    keep = []
+    for name, p in files.items():
+        is_hi = name.startswith("hi@")
+        twin = name[3:] if is_hi else "hi@" + name
+        if twin in files and (is_hi == (prefer == "normal")):
+            continue
+        keep.append(p)
     return sorted(keep, key=lambda p: p.name.lower())
 
 
@@ -92,13 +99,15 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--materials-toml", type=Path)
     ap.add_argument("--bbox", type=_floats(4))
     ap.add_argument("--start", type=_floats(4), required=True)
+    ap.add_argument("--prefer", choices=("normal", "hi"), default="normal",
+                    help="which collision to use when both a normal and an hi@ file exist")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
-    files = pick_files(a.xml_dir)
+    files = pick_files(a.xml_dir, a.prefer)
     per_file = {f.name: read_ybn_xml(f, names) for f in files}
     tris = [t for ts in per_file.values() for t in ts]
     small = [f"{n} ({len(ts)})" for n, ts in per_file.items() if len(ts) < 50]

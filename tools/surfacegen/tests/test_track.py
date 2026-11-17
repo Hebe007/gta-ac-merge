@@ -49,12 +49,14 @@ def test_cli_end_to_end(tmp_path):
     assert "AC_START_0" in dummies
 
 
-def test_cli_prefers_hi_detail_collision_when_both_exist(tmp_path):
+def test_cli_prefers_normal_mover_collision_over_hi(tmp_path):
     from surfacegen.cli import pick_files
-    names = ["dt1_01_0.ybn.xml", "hi@dt1_01_0.ybn.xml", "dt1_02_0.ybn.xml", "notes.txt"]
+    names = ["dt1_01_0.ybn.xml", "hi@dt1_01_0.ybn.xml", "hi@dt1_02_0.ybn.xml", "dt1_03_0.ybn.xml", "notes.txt"]
     for n in names:
         (tmp_path / n).write_text("<BoundsFile/>")
-    assert [p.name for p in pick_files(tmp_path)] == ["dt1_02_0.ybn.xml", "hi@dt1_01_0.ybn.xml"]
+    # normal file wins; hi@ only where no normal file exists
+    assert [p.name for p in pick_files(tmp_path)] == ["dt1_01_0.ybn.xml", "dt1_03_0.ybn.xml", "hi@dt1_02_0.ybn.xml"]
+    assert [p.name for p in pick_files(tmp_path, prefer="hi")] == ["dt1_03_0.ybn.xml", "hi@dt1_01_0.ybn.xml", "hi@dt1_02_0.ybn.xml"]
 
 
 def test_cli_prints_material_summary(tmp_path, caplog):
