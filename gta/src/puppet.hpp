@@ -19,12 +19,16 @@ class Puppet {
  private:
   void link(const LinkFrame& f, double now, const std::string& shmStatus);
   void unlink(const std::string& why, double now);
+  bool calibrate(const LinkFrame& f, double now);  // sets lift_ from both cars' heights; false = try again
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;
   std::string model_;
   float trim_ = 0;
   float lift_ = 0;
+  float gtaH_ = 0;
+  bool calPending_ = false;
+  double calUntil_ = 0;
   LinkClient client_;
   int veh_ = 0;
   bool haveLast_ = false;

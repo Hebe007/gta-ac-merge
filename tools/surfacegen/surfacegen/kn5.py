@@ -24,6 +24,7 @@ IDENTITY = [1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0]
 @dataclass
 class ReadMesh:
     vertices: list = field(default_factory=list)
+    normals: list = field(default_factory=list)
     indices: list = field(default_factory=list)
     visible: bool = True
     renderable: bool = True
@@ -46,15 +47,38 @@ def _flip_added(m: Mesh) -> Mesh:
                                          for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])
 
 
+def with_face_normals(m: Mesh) -> Mesh:
+    """Give every corner its triangle's face normal (AC uses normals to decide which side of a wall is solid).
+    Corners are shared only between triangles that face the same way, so flat areas stay compact."""
+    out = Mesh()
+    index: dict[tuple, int] = {}
+    for t in range(0, len(m.indices), 3):
+        ia, ib, ic = m.indices[t:t + 3]
+        a, b, c = m.vertices[ia], m.vertices[ib], m.vertices[ic]
+        u = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+        v = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
+        n = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+        length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
+        n = (n[0] / length, n[1] / length, n[2] / length)
+        nk = (round(n[0], 2), round(n[1], 2), round(n[2], 2))
+        for i in (ia, ib, ic):
+            k = (i, nk)
+            if k not in index:
+                index[k] = len(out.vertices)
+                out.vertices.append(m.vertices[i])
+                out.normals.append(n)
+            out.indices.append(index[k])
+    return out
+
+
 def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float]],
               visible: bool = False, double_sided: bool = False) -> None:
     """visible: draw the meshes (debug). double_sided: add every triangle again with opposite winding
     (walls always get this)."""
-    meshes = {k: _flip_added(m) if k in ALWAYS_DOUBLE_SIDED and not double_sided else m for k, m in meshes.items()}
+    meshes = {k: _flip_added(m) if k in ALWAYS_DOUBLE_SIDED else m for k, m in meshes.items()}
     if double_sided:
-        meshes = {k: Mesh(m.vertices, m.indices + [i for t in range(0, len(m.indices), 3)
-                                                   for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])
-                  for k, m in meshes.items()}
+        meshes = {k: _flip_added(m) if k not in ALWAYS_DOUBLE_SIDED else m for k, m in meshes.items()}
+    meshes = {k: with_face_normals(m) for k, m in meshes.items()}
     out = bytearray(b"sc6969")
     out += struct.pack("<i", KN5_VERSION)
     out += struct.pack("<i", 0)  # textures
@@ -83,6 +107,8 @@ def _split(mesh: Mesh) -> list[Mesh]:
             if i not in remap:
                 remap[i] = len(cur.vertices)
                 cur.vertices.append(mesh.vertices[i])
+                if mesh.normals:
+                    cur.normals.append(mesh.normals[i])
             cur.indices.append(remap[i])
     return [c for c in chunks if c.indices]
 
@@ -112,8 +138,9 @@ def _mesh_node(name: str, m: Mesh, visible: bool = False) -> bytes:
     b += struct.pack("<???", False, visible, False)  # cast shadows, visible, transparent
     b += struct.pack("<i", len(m.vertices))
     flat = array("f")
-    for v in m.vertices:  # position, normal (up), uv, tangent
-        flat.extend((v[0], v[1], v[2], 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0))
+    normals = m.normals or [(0.0, 1.0, 0.0)] * len(m.vertices)
+    for v, n in zip(m.vertices, normals):  # position, normal, uv, tangent
+        flat.extend((v[0], v[1], v[2], n[0], n[1], n[2], 0.0, 0.0, 1.0, 0.0, 0.0))
     if sys.byteorder != "little":
         flat.byteswap()
     b += flat.tobytes()
@@ -185,6 +212,7 @@ def read_kn5(path: Path):
             (nv,) = r.take("i")
             vals = r.take(f"{nv * 11}f")
             rm.vertices = [tuple(vals[i:i + 3]) for i in range(0, len(vals), 11)]
+            rm.normals = [tuple(vals[i + 3:i + 6]) for i in range(0, len(vals), 11)]
             (ni,) = r.take("i")
             rm.indices = list(r.take(f"{ni}H"))
             r.take("IIff3ff")

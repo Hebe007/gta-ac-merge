@@ -28,6 +28,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
       if (haveLast_ && dist(cur, last_.pos) > kTeleportUnlinkMeters) {
         unlink("GTA link off: the car was teleported (press F8 to link again)", now);
       } else if (f.connected && f.fresh) {
+        if (calPending_) calPending_ = now < calUntil_ && !calibrate(f, now);
         last_ = f.pose;
         Vec3 up = rotate(last_.rot, {0, 0, 1});
         last_.pos = {last_.pos.x + up.x * lift_, last_.pos.y + up.y * lift_, last_.pos.z + up.z * lift_};
@@ -68,21 +69,29 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
     return;
   }
   g_.putPlayerIn(veh_);
-  float gtaH = g_.originHeight(veh_);
-  float acH = f.rideHeight;
-  if (acH <= 0.05f) {
-    // AC didn't say: the car is standing on the road right now, so measure AC's position against GTA's ground.
-    float gz;
-    Vec3 p = f.pose.pos;
-    if (g_.groundZ({p.x, p.y, p.z + 1.5f}, gz) && p.z - gz > -0.2f && p.z - gz < 1.5f) acH = p.z - gz;
-  }
-  lift_ = (acH > -0.2f && acH != 0.f && gtaH > 0 ? gtaH - acH : 0.f) + trim_;
+  gtaH_ = g_.originHeight(veh_);
   last_ = f.pose;
   haveLast_ = true;
+  lift_ = trim_;
+  calPending_ = !calibrate(f, now);
+  calUntil_ = now + 5.0;
+  if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+}
+
+bool Puppet::calibrate(const LinkFrame& f, double now) {
+  float acH = f.rideHeight;
+  if (acH <= 0.05f) {
+    // AC didn't say: the car is standing on the road, so measure AC's position against GTA's ground.
+    float gz;
+    Vec3 p = f.pose.pos;
+    if (!g_.groundZ({p.x, p.y, p.z + 1.5f}, gz) || p.z - gz <= -0.2f || p.z - gz >= 1.5f) return false;
+    acH = p.z - gz;
+  }
+  lift_ = (gtaH_ > 0 ? gtaH_ - acH : 0.f) + trim_;
   char m[160];
-  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", acH, gtaH,
-                lift_);
+  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", acH, gtaH_, lift_);
   say(m, now);
+  return true;
 }
 
 void Puppet::unlink(const std::string& why, double now) {

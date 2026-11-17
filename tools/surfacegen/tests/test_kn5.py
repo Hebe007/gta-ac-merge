@@ -92,3 +92,31 @@ def test_walls_are_double_sided_by_default_floors_are_not(tmp_path):
     m = read_kn5(p)[0]
     assert len(m["1ROAD_0"].indices) == len(square().indices)
     assert len(m["1WALL_0"].indices) == 2 * len(square().indices)
+
+
+def _norm_of(m, i):
+    return tuple(round(c, 4) for c in m.normals[i])
+
+
+def test_vertex_normals_are_real_face_normals(tmp_path):
+    floor = Mesh([(0, 0, 0), (0, 0, -1), (1, 0, 0), (1, 0, -1)], [0, 2, 1, 1, 2, 3])  # right-hand normal +Y
+    wall = Mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [0, 1, 2])  # normal +Z
+    p = tmp_path / "t.kn5"
+    write_kn5(p, {"ROAD": floor, "WALL": wall}, {})
+    m = read_kn5(p)[0]
+    road = m["1ROAD_0"]
+    assert {_norm_of(road, i) for i in range(len(road.vertices))} == {(0, 1, 0)}
+    assert len(road.vertices) == 4  # coplanar triangles still share corners
+    w = m["1WALL_0"]
+    normals = {_norm_of(w, i) for i in w.indices}
+    assert normals == {(0, 0, 1), (0, 0, -1)}  # front face and its double-sided back face
+    for t in range(0, len(w.indices), 3):  # each triangle's corners agree on one normal
+        assert len({_norm_of(w, i) for i in w.indices[t:t + 3]}) == 1
+
+
+def test_walls_stay_double_sided_with_the_double_sided_flag(tmp_path):
+    wall = Mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [0, 1, 2])
+    p = tmp_path / "t.kn5"
+    write_kn5(p, {"WALL": wall, "ROAD": square()}, {}, double_sided=True)
+    m = read_kn5(p)[0]
+    assert len(m["1WALL_0"].indices) == 6 and len(m["1ROAD_0"].indices) == 2 * len(square().indices)

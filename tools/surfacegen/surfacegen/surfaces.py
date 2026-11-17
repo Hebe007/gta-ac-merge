@@ -23,6 +23,7 @@ V3 = tuple[float, float, float]
 class Mesh:
     vertices: list[V3] = field(default_factory=list)  # AC space (Y-up)
     indices: list[int] = field(default_factory=list)
+    normals: list[V3] = field(default_factory=list)  # per vertex; empty = not computed yet
 
 
 def load_table(path: Path | None = None) -> dict[str, str]:

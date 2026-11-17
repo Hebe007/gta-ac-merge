@@ -211,3 +211,17 @@ TEST_CASE("ground measurement ignores silly values") {
   acWrite({1, 30, 0}); p.tick(1.016, &shm);
   CHECK(g.lastPose.pos.z == doctest::Approx(30));
 }
+
+TEST_CASE("if GTA's ground isn't loaded at link time, keeps trying and lifts once it is") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  g.originH = 0.61f;
+  g.hasGround = false;
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({0, 30, 0}); p.tick(1.016, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30));  // not measured yet
+  g.hasGround = true; g.ground = 29.85f;
+  acWrite({0, 30, 0}); p.tick(1.032, &shm);
+  acWrite({0, 30, 0}); p.tick(1.048, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30.46f));
+  CHECK(p.message().find("lift +0.46") != std::string::npos);
+}
