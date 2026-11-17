@@ -1,0 +1,7 @@
+build/
+work/
+*.kn5
+*.ybn.xml
+__pycache__/
+.pytest_cache/
+third_party/shv/
