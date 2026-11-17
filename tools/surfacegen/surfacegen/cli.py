@@ -20,6 +20,13 @@ def _floats(n: int):
     return parse
 
 
+def pick_files(xml_dir: Path) -> list[Path]:
+    """All exported .xml files; when both "hi@<name>" (high-detail collision) and "<name>" exist, keep only hi@."""
+    files = {p.name.lower(): p for p in xml_dir.iterdir() if p.name.lower().endswith(".xml")}
+    keep = [p for name, p in files.items() if not ("hi@" + name) in files]
+    return sorted(keep, key=lambda p: p.name.lower())
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="surfacegen")
     ap.add_argument("--xml-dir", type=Path, required=True)
@@ -33,7 +40,7 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
-    files = sorted(p for p in a.xml_dir.iterdir() if p.name.lower().endswith(".xml"))
+    files = pick_files(a.xml_dir)
     tris = [t for f in files for t in read_ybn_xml(f, names)]
     meshes = build_meshes(tris, load_table(a.materials_toml), a.bbox)
     if not meshes:

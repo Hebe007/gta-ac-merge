@@ -5,7 +5,8 @@
 - Assetto Corsa with Content Manager and CSP 2.11.
 
 ## Spike A — AC input/FFB in the background
-_not run yet_
+**Passed (2026-11-17).** With GTA focused, AC kept reading the wheel and pedals, the car moved, and FFB
+stayed on. No workaround needed.
 
 ## Spike B — generated downtown tile in AC
 _not run yet_

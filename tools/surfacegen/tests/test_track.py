@@ -46,3 +46,11 @@ def test_cli_end_to_end(tmp_path):
     m, dummies = read_kn5(out / "gta_ls_downtown.kn5")
     assert any(name.startswith("1ROAD") for name in m)
     assert "AC_START_0" in dummies
+
+
+def test_cli_prefers_hi_detail_collision_when_both_exist(tmp_path):
+    from surfacegen.cli import pick_files
+    names = ["dt1_01_0.ybn.xml", "hi@dt1_01_0.ybn.xml", "dt1_02_0.ybn.xml", "notes.txt"]
+    for n in names:
+        (tmp_path / n).write_text("<BoundsFile/>")
+    assert [p.name for p in pick_files(tmp_path)] == ["dt1_02_0.ybn.xml", "hi@dt1_01_0.ybn.xml"]
