@@ -92,6 +92,19 @@ def probe(per_file: dict, x: float, y: float, count: int = 8) -> list[str]:
     return [f"{d:6.1f} m  {name}  {t.material}  {fmt(t.a)} {fmt(t.b)} {fmt(t.c)}" for d, name, t in near[:count]]
 
 
+def looks_like_interior(tris) -> bool:
+    """Interior (MLO) collision is stored around 0,0,0 in the interior's own coordinates; the game places it
+    elsewhere. Real map blocks near the world origin sit at street level (z >= ~20)."""
+    if not tris:
+        return False
+    xs = [p[0] for t in tris for p in (t.a, t.b, t.c)]
+    ys = [p[1] for t in tris for p in (t.a, t.b, t.c)]
+    zs = [p[2] for t in tris for p in (t.a, t.b, t.c)]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    size = max(max(xs) - min(xs), max(ys) - min(ys))
+    return math.hypot(cx, cy) < 300 and size < 300 and min(zs) < 15 and max(zs) < 40
+
+
 def coverage(tris, x: float, y: float):
     """GTA bounding box of all triangles, and the horizontal distance from (x, y) to the nearest triangle centre."""
     pts = [p for t in tris for p in (t.a, t.b, t.c)]
@@ -137,6 +150,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--step-height", type=float, default=0.35,
                     help="steep faces lower than this many metres (kerbs) stay drivable instead of becoming walls")
     ap.add_argument("--flip-walls", action="store_true", help="turn all wall faces around (if walls only stop you from inside)")
+    ap.add_argument("--keep-interiors", action="store_true", help="don't leave out files that look like interiors")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     a = ap.parse_args(argv)
@@ -150,14 +164,23 @@ def main(argv: list[str] | None = None) -> None:
         per_file[f.name] = read_ybn_xml(f, names)
         if i % 200 == 0:
             logging.info("  read %d / %d files", i, len(files))
+    interiors = [] if a.keep_interiors else [n for n, ts in per_file.items() if looks_like_interior(ts)]
+    for n in interiors:
+        del per_file[n]
+    if interiors:
+        logging.info("left out %d interior files (stored in local coordinates): %s%s", len(interiors),
+                     ", ".join(interiors[:8]), " ..." if len(interiors) > 8 else "")
     tris = [t for ts in per_file.values() for t in ts]
+    logging.info("%d triangles from %d files", len(tris), len(per_file))
     if a.weld > 0:
+        logging.info("welding seams...")
         tris, merged, dropped = weld(tris, a.weld)
         logging.info("welded %d vertices within %.0f cm; dropped %d collapsed triangles", merged, a.weld * 100, dropped)
     small = [f"{n} ({len(ts)})" for n, ts in per_file.items() if len(ts) < 50]
     if small:
         logging.warning("files with almost no collision (possible holes): %s", ", ".join(small))
     table = load_table(a.materials_toml)
+    logging.info("sorting into surfaces...")
     meshes = build_meshes(tris, table, a.bbox, a.step_height)
     summary = Counter((t.material, classify(t, table, a.step_height)) for t in tris if not a.bbox or _inside(t, a.bbox))
     logging.info("GTA material -> AC surface (triangles):")
@@ -182,6 +205,7 @@ def main(argv: list[str] | None = None) -> None:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
     if a.wall_surface == "ROAD" and "WALL" in meshes:
         meshes["ROAD_WALL"] = meshes.pop("WALL")  # mesh name 1ROAD_WALL_n: starts like the working 1ROAD_n
+    logging.info("writing the track file...")
     write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided, flip_walls=a.flip_walls)
     total = sum(len(m.indices) // 3 for m in meshes.values())
     logging.info("wrote %s layout %s: %d files, %d triangles (%s)", a.out, a.layout, len(files), total,

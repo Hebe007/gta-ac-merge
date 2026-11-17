@@ -42,7 +42,7 @@ def test_surfaces_ini_has_one_section_per_used_key(tmp_path):
 
 def test_cli_end_to_end(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(out),
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(out),
               "--layout", "downtown", "--start", "105,202,6,0"])
     m, dummies = read_kn5(out / "gta_ls_downtown.kn5")
     assert any(name.startswith("1ROAD") for name in m)
@@ -61,7 +61,7 @@ def test_cli_prefers_normal_mover_collision_over_hi(tmp_path):
 
 def test_cli_prints_material_summary(tmp_path, caplog):
     caplog.set_level("INFO")
-    cli.main(["--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(tmp_path / "gta_ls"),
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(tmp_path / "gta_ls"),
               "--layout", "downtown", "--start", "105,202,6,0"])
     assert "TARMAC -> ROAD" in caplog.text
     assert "GRASS -> GRASS" in caplog.text
@@ -102,17 +102,17 @@ def test_probe_lists_nearest_triangles():
 
 def test_cli_welds_by_default_and_reports(tmp_path, caplog):
     caplog.set_level("INFO")
-    cli.main(["--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls"), "--layout", "downtown", "--start", "105,202,6,0"])
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls"), "--layout", "downtown", "--start", "105,202,6,0"])
     assert "welded" in caplog.text
     caplog.clear()
-    cli.main(["--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
               "--weld", "0"])
     assert "welded" not in caplog.text
 
 
 def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0",
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0",
               "--wall-surface", "ROAD"])
     m, _ = read_kn5(out / "gta_ls_downtown.kn5")
     assert not any(n.startswith("1WALL") for n in m)
@@ -121,7 +121,7 @@ def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
 
 def test_cli_flip_walls_option(tmp_path):
     out = tmp_path / "gta_ls"
-    cli.main(["--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
+    cli.main(["--keep-interiors", "--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
     assert (out / "gta_ls_downtown.kn5").exists()
 
 
@@ -176,3 +176,15 @@ def test_ma_files_are_ignored(tmp_path):
     for f in ["base/id1_24_0.ybn.xml", "base/ma@id1_24_0.ybn.xml", "base/hi@id1_24_0.ybn.xml", "base/ma@id1_99_0.ybn.xml"]:
         _touch(tmp_path / f)
     assert [p.name for p in pick_sources(tmp_path)] == ["id1_24_0.ybn.xml"]
+
+
+def test_interior_like_files_are_detected():
+    from surfacegen.cli import looks_like_interior
+    from surfacegen.ybn_xml import Tri
+    interior = [Tri((-20, -10, -1), (25, -10, -1), (-20, 30, 8), "T")]       # small, around 0,0,0
+    city_block_near_origin = [Tri((-40, 10, 28), (60, 10, 30), (-40, 90, 45), "T")]  # street level
+    far_block = [Tri((1500, 900, 2), (1600, 900, 2), (1500, 1000, 3), "T")]
+    assert looks_like_interior(interior)
+    assert not looks_like_interior(city_block_near_origin)
+    assert not looks_like_interior(far_block)
+    assert not looks_like_interior([])
