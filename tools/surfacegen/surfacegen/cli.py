@@ -6,7 +6,9 @@ import argparse
 import logging
 from pathlib import Path
 
-from .surfaces import build_meshes, load_table
+from collections import Counter
+
+from .surfaces import _inside, build_meshes, classify, load_table
 from .track import write_track
 from .ybn_xml import read_materials_dat, read_ybn_xml
 
@@ -42,7 +44,12 @@ def main(argv: list[str] | None = None) -> None:
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
     files = pick_files(a.xml_dir)
     tris = [t for f in files for t in read_ybn_xml(f, names)]
-    meshes = build_meshes(tris, load_table(a.materials_toml), a.bbox)
+    table = load_table(a.materials_toml)
+    meshes = build_meshes(tris, table, a.bbox)
+    summary = Counter((t.material, classify(t, table)) for t in tris if not a.bbox or _inside(t, a.bbox))
+    logging.info("GTA material -> AC surface (triangles):")
+    for (mat, key), n in sorted(summary.items(), key=lambda kv: -kv[1]):
+        logging.info("  %8d  %s -> %s", n, mat, key)
     if not meshes:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")
     write_track(a.out, a.layout, meshes, a.start)

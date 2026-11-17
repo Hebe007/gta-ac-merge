@@ -70,3 +70,15 @@ def test_shipped_table_uses_gta_names_from_materials_dat():
     assert classify(tri(mat="RUMBLE_STRIP"), table) == "KERB"
     assert classify(tri(mat="TARMAC_POTHOLE"), table) == "ROAD"
     assert classify(tri(mat="BREEZE_BLOCK"), table) == "ROAD"
+
+
+def test_building_materials_are_known_and_trees_are_walls(caplog):
+    caplog.set_level(logging.WARNING)
+    table = load_table()
+    for m in ("DEFAULT", "METAL_GRILLE", "GLASS_BULLETPROOF", "WOOD_SOLID_SMALL", "PLASTER_SOLID", "CARPET_SOLID",
+              "PLASTIC_HOLLOW", "ROOF_FELT", "LINOLEUM", "CERAMIC", "POLYSTYRENE", "TARPAULIN", "CLOTH", "PAPER",
+              "FIBREGLASS", "SLATTED_BLINDS", "VFX_METAL_ELECTRIFIED", "PHYS_ELECTRIC_METAL", "CAR_GLASS_BULLETPROOF",
+              "WATER"):
+        assert classify(tri(mat=m), table) == "ROAD", m
+    assert classify(tri(mat="TREE_BARK"), table) == "WALL"
+    assert "unknown" not in caplog.text

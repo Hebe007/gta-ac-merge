@@ -54,3 +54,11 @@ def test_cli_prefers_hi_detail_collision_when_both_exist(tmp_path):
     for n in names:
         (tmp_path / n).write_text("<BoundsFile/>")
     assert [p.name for p in pick_files(tmp_path)] == ["dt1_02_0.ybn.xml", "hi@dt1_01_0.ybn.xml"]
+
+
+def test_cli_prints_material_summary(tmp_path, caplog):
+    caplog.set_level("INFO")
+    cli.main(["--xml-dir", str(FIX), "--materials-dat", str(FIX / "materials.dat"), "--out", str(tmp_path / "gta_ls"),
+              "--layout", "downtown", "--start", "105,202,6,0"])
+    assert "TARMAC -> ROAD" in caplog.text
+    assert "GRASS -> GRASS" in caplog.text
