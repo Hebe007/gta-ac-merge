@@ -73,3 +73,14 @@ def test_large_mesh_writes_fast(tmp_path):
     t0 = time.perf_counter()
     write_kn5(tmp_path / "big.kn5", {"ROAD": Mesh(verts, idx)}, {})
     assert time.perf_counter() - t0 < 10
+
+
+def test_debug_visible_and_double_sided(tmp_path):
+    p = tmp_path / "t.kn5"
+    write_kn5(p, {"ROAD": square()}, {}, visible=True, double_sided=True)
+    m = read_kn5(p)[0]["1ROAD_0"]
+    assert m.visible is True and m.renderable is True
+    assert len(m.indices) == 2 * len(square().indices)
+    fwd = tris(square())
+    back = tris(m)[len(fwd):]
+    assert back == [(a, c, b) for a, b, c in fwd]  # same triangles, opposite winding

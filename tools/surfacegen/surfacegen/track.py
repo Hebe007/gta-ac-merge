@@ -26,7 +26,8 @@ SURFACES = {
 GATE_HALF_WIDTH = 8.0
 
 
-def write_track(out: Path, layout: str, meshes: dict[str, Mesh], start_gta: tuple[float, float, float, float]) -> None:
+def write_track(out: Path, layout: str, meshes: dict[str, Mesh], start_gta: tuple[float, float, float, float],
+                visible: bool = False, double_sided: bool = False) -> None:
     out = Path(out)
     track = out.name
     kn5_name = f"{track}_{layout}.kn5"
@@ -40,7 +41,7 @@ def write_track(out: Path, layout: str, meshes: dict[str, Mesh], start_gta: tupl
     right = start_matrix((x + side[0] * GATE_HALF_WIDTH, y + side[1] * GATE_HALF_WIDTH, z), heading)
     dummies = {"AC_START_0": start, "AC_PIT_0": start, "AC_HOTLAP_START_0": start,
                "AC_TIME_0_L": left, "AC_TIME_0_R": right}
-    write_kn5(out / kn5_name, meshes, dummies)
+    write_kn5(out / kn5_name, meshes, dummies, visible=visible, double_sided=double_sided)
 
     (out / f"models_{layout}.ini").write_text(f"[MODEL_0]\nFILE={kn5_name}\nPOSITION=0,0,0\nROTATION=0,0,0\n")
 

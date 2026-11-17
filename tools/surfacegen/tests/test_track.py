@@ -1,3 +1,4 @@
+import pytest
 import configparser
 import json
 from pathlib import Path
@@ -62,3 +63,12 @@ def test_cli_prints_material_summary(tmp_path, caplog):
               "--layout", "downtown", "--start", "105,202,6,0"])
     assert "TARMAC -> ROAD" in caplog.text
     assert "GRASS -> GRASS" in caplog.text
+
+
+def test_ground_under_start():
+    from surfacegen.cli import ground_under
+    from surfacegen.ybn_xml import Tri
+    floor = Tri((0, 0, 10), (10, 0, 10), (0, 10, 12), "TARMAC")
+    roof = Tri((0, 0, 50), (10, 0, 50), (0, 10, 50), "TARMAC")
+    assert ground_under([floor, roof], 2, 2, below=30) == pytest.approx(10.4)
+    assert ground_under([floor], 20, 20, below=30) is None

@@ -29,6 +29,25 @@ def pick_files(xml_dir: Path) -> list[Path]:
     return sorted(keep, key=lambda p: p.name.lower())
 
 
+def ground_under(tris, x: float, y: float, below: float) -> float | None:
+    """Highest non-steep triangle surface at GTA (x, y) that is lower than z=below, or None."""
+    best = None
+    for t in tris:
+        (x1, y1, z1), (x2, y2, z2), (x3, y3, z3) = t.a, t.b, t.c
+        d = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3)
+        if abs(d) < 1e-9:
+            continue
+        l1 = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / d
+        l2 = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / d
+        l3 = 1 - l1 - l2
+        if min(l1, l2, l3) < 0:
+            continue
+        z = l1 * z1 + l2 * z2 + l3 * z3
+        if z <= below and (best is None or z > best):
+            best = z
+    return best
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="surfacegen")
     ap.add_argument("--xml-dir", type=Path, required=True)
@@ -38,6 +57,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--materials-toml", type=Path)
     ap.add_argument("--bbox", type=_floats(4))
     ap.add_argument("--start", type=_floats(4), required=True)
+    ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
+    ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -52,7 +73,13 @@ def main(argv: list[str] | None = None) -> None:
         logging.info("  %8d  %s -> %s", n, mat, key)
     if not meshes:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")
-    write_track(a.out, a.layout, meshes, a.start)
+    sx, sy, sz, _ = a.start
+    g = ground_under(tris, sx, sy, below=sz + 2)
+    if g is None:
+        logging.warning("no collision found under the start point (%.1f, %.1f): the car will fall", sx, sy)
+    else:
+        logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
+    write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided)
     total = sum(len(m.indices) // 3 for m in meshes.values())
     logging.info("wrote %s layout %s: %d files, %d triangles (%s)", a.out, a.layout, len(files), total,
                  ", ".join(f"{k} {len(m.indices) // 3}" for k, m in meshes.items()))

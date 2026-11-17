@@ -38,7 +38,13 @@ def start_matrix(gta_pos: tuple[float, float, float], gta_heading_deg: float) ->
     return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, x, z, -y, 1]
 
 
-def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float]]) -> None:
+def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float]],
+              visible: bool = False, double_sided: bool = False) -> None:
+    """visible: draw the meshes (debug). double_sided: add every triangle again with opposite winding."""
+    if double_sided:
+        meshes = {k: Mesh(m.vertices, m.indices + [i for t in range(0, len(m.indices), 3)
+                                                   for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])
+                  for k, m in meshes.items()}
     out = bytearray(b"sc6969")
     out += struct.pack("<i", KN5_VERSION)
     out += struct.pack("<i", 0)  # textures
@@ -47,7 +53,7 @@ def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float
     chunks = [(f"1{key}_{i}", c) for key, mesh in meshes.items() for i, c in enumerate(_split(mesh))]
     out += _base_node(Path(path).stem, IDENTITY, len(chunks) + len(dummies))
     for name, mesh in chunks:
-        out += _mesh_node(name, mesh)
+        out += _mesh_node(name, mesh, visible)
     for name, m in dummies.items():
         out += _base_node(name, m, 0)
     Path(path).write_bytes(bytes(out))
@@ -91,9 +97,9 @@ def _base_node(name: str, matrix: list[float], children: int) -> bytes:
     return struct.pack("<i", NODE_BASE) + _s(name) + struct.pack("<i?", children, True) + struct.pack("<16f", *matrix)
 
 
-def _mesh_node(name: str, m: Mesh) -> bytes:
+def _mesh_node(name: str, m: Mesh, visible: bool = False) -> bytes:
     b = bytearray(struct.pack("<i", NODE_MESH) + _s(name) + struct.pack("<i?", 0, True))
-    b += struct.pack("<???", False, False, False)  # cast shadows, visible, transparent
+    b += struct.pack("<???", False, visible, False)  # cast shadows, visible, transparent
     b += struct.pack("<i", len(m.vertices))
     flat = array("f")
     for v in m.vertices:  # position, normal (up), uv, tangent
@@ -112,7 +118,7 @@ def _mesh_node(name: str, m: Mesh) -> bytes:
     centre = [(lo[i] + hi[i]) / 2 for i in range(3)]
     radius = math.dist(centre, hi)  # half the bounding-box diagonal contains every vertex
     b += struct.pack("<3ff", *centre, radius)
-    b += struct.pack("<?", False)  # renderable
+    b += struct.pack("<?", visible)  # renderable
     return bytes(b)
 
 
