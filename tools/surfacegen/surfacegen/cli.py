@@ -105,6 +105,8 @@ def main(argv: list[str] | None = None) -> None:
                     help="snap vertices closer than this many metres together to close cracks (0 = off)")
     ap.add_argument("--wall-surface", choices=("WALL", "ROAD"), default="WALL",
                     help="surface key for walls (ROAD = test whether AC collides with them under the road surface)")
+    ap.add_argument("--step-height", type=float, default=0.35,
+                    help="steep faces lower than this many metres (kerbs) stay drivable instead of becoming walls")
     ap.add_argument("--flip-walls", action="store_true", help="turn all wall faces around (if walls only stop you from inside)")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
@@ -122,8 +124,8 @@ def main(argv: list[str] | None = None) -> None:
     if small:
         logging.warning("files with almost no collision (possible holes): %s", ", ".join(small))
     table = load_table(a.materials_toml)
-    meshes = build_meshes(tris, table, a.bbox)
-    summary = Counter((t.material, classify(t, table)) for t in tris if not a.bbox or _inside(t, a.bbox))
+    meshes = build_meshes(tris, table, a.bbox, a.step_height)
+    summary = Counter((t.material, classify(t, table, a.step_height)) for t in tris if not a.bbox or _inside(t, a.bbox))
     logging.info("GTA material -> AC surface (triangles):")
     for (mat, key), n in sorted(summary.items(), key=lambda kv: -kv[1]):
         logging.info("  %8d  %s -> %s", n, mat, key)

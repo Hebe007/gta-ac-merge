@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 AC_KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "WALL")
 WALL_SLOPE_DEG = 60.0
+STEP_HEIGHT = 0.35  # steep faces lower than this (kerbs, steps) stay drivable so the wheels climb them
 _COS_WALL = math.cos(math.radians(WALL_SLOPE_DEG))
 _warned: set[str] = set()
 
@@ -31,11 +32,15 @@ def load_table(path: Path | None = None) -> dict[str, str]:
     return dict(tomllib.loads(Path(path).read_text())["materials"])
 
 
-def classify(t: Tri, table: dict[str, str]) -> str:
+def classify(t: Tri, table: dict[str, str], step_height: float = STEP_HEIGHT) -> str:
     n = _normal(t.a, t.b, t.c)
     length = math.sqrt(sum(x * x for x in n))
-    if length == 0 or abs(n[2]) / length < _COS_WALL - 1e-9:
+    if length == 0:
         return "WALL"
+    if abs(n[2]) / length < _COS_WALL - 1e-9:
+        height = max(t.a[2], t.b[2], t.c[2]) - min(t.a[2], t.b[2], t.c[2])
+        if height >= step_height or table.get(t.material) == "WALL":
+            return "WALL"
     if t.material in table:
         return table[t.material]
     best = max((k for k in table if k.endswith("*") and t.material.startswith(k[:-1])), key=len, default=None)
@@ -51,13 +56,14 @@ def gta_to_ac(p: V3) -> V3:
     return (p[0], p[2], -p[1])
 
 
-def build_meshes(tris: list[Tri], table: dict[str, str], bbox_gta: tuple[float, float, float, float] | None) -> dict[str, Mesh]:
+def build_meshes(tris: list[Tri], table: dict[str, str], bbox_gta: tuple[float, float, float, float] | None,
+                 step_height: float = STEP_HEIGHT) -> dict[str, Mesh]:
     meshes: dict[str, Mesh] = {}
     lookup: dict[str, dict[tuple, int]] = {}
     for t in tris:
         if bbox_gta and not _inside(t, bbox_gta):
             continue
-        key = classify(t, table)
+        key = classify(t, table, step_height)
         a, b, c = (gta_to_ac(p) for p in (t.a, t.b, t.c))
         if key != "WALL" and _normal(a, b, c)[1] < 0:  # floors face up (+Y) in AC
             b, c = c, b

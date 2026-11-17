@@ -129,3 +129,17 @@ def test_weld_is_fast_enough_for_a_city_block():
     t0 = time.perf_counter()
     weld(tris, 0.05)
     assert time.perf_counter() - t0 < 15
+
+
+def test_low_steep_faces_like_kerbs_stay_drivable():
+    kerb = Tri((0, 0, 0), (1, 0, 0), (0, 0, 0.2), "CONCRETE")  # 20 cm vertical face
+    wall = Tri((0, 0, 0), (1, 0, 0), (0, 0, 1.0), "CONCRETE")  # 1 m vertical face
+    table = {"CONCRETE": "ROAD"}
+    assert classify(kerb, table) == "ROAD"
+    assert classify(wall, table) == "WALL"
+    assert classify(kerb, table, step_height=0.1) == "WALL"
+
+
+def test_trees_stay_walls_even_when_short_pieces():
+    bark = Tri((0, 0, 0), (0.2, 0, 0), (0, 0, 0.2), "TREE_BARK")
+    assert classify(bark, {"TREE_BARK": "WALL"}) == "WALL"
