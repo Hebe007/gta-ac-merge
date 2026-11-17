@@ -86,12 +86,13 @@ def test_debug_visible_and_double_sided(tmp_path):
     assert back == [(a, c, b) for a, b, c in fwd]  # same triangles, opposite winding
 
 
-def test_walls_are_double_sided_by_default_floors_are_not(tmp_path):
+def test_walls_are_single_sided(tmp_path):
+    # two coincident opposite faces cancel in AC's collision: the car slides through
     p = tmp_path / "t.kn5"
     write_kn5(p, {"ROAD": square(), "WALL": square(5)}, {})
     m = read_kn5(p)[0]
     assert len(m["1ROAD_0"].indices) == len(square().indices)
-    assert len(m["1WALL_0"].indices) == 2 * len(square().indices)
+    assert len(m["1WALL_0"].indices) == len(square().indices)
 
 
 def _norm_of(m, i):
@@ -109,14 +110,24 @@ def test_vertex_normals_are_real_face_normals(tmp_path):
     assert len(road.vertices) == 4  # coplanar triangles still share corners
     w = m["1WALL_0"]
     normals = {_norm_of(w, i) for i in w.indices}
-    assert normals == {(0, 0, 1), (0, 0, -1)}  # front face and its double-sided back face
+    assert normals == {(0, 0, 1)}  # one face, following GTA's winding
     for t in range(0, len(w.indices), 3):  # each triangle's corners agree on one normal
         assert len({_norm_of(w, i) for i in w.indices[t:t + 3]}) == 1
 
 
-def test_walls_stay_double_sided_with_the_double_sided_flag(tmp_path):
+def test_double_sided_flag_never_doubles_walls(tmp_path):
     wall = Mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [0, 1, 2])
     p = tmp_path / "t.kn5"
     write_kn5(p, {"WALL": wall, "ROAD": square()}, {}, double_sided=True)
     m = read_kn5(p)[0]
-    assert len(m["1WALL_0"].indices) == 6 and len(m["1ROAD_0"].indices) == 2 * len(square().indices)
+    assert len(m["1WALL_0"].indices) == 3 and len(m["1ROAD_0"].indices) == 2 * len(square().indices)
+
+
+def test_flip_walls_reverses_wall_faces_only(tmp_path):
+    wall = Mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [0, 1, 2])
+    floor = Mesh([(0, 0, 0), (0, 0, -1), (1, 0, 0)], [0, 2, 1])  # faces up
+    p = tmp_path / "t.kn5"
+    write_kn5(p, {"WALL": wall, "ROAD": floor}, {}, flip_walls=True)
+    m = read_kn5(p)[0]
+    assert {_norm_of(m["1WALL_0"], i) for i in m["1WALL_0"].indices} == {(0, 0, -1)}
+    assert {_norm_of(m["1ROAD_0"], i) for i in m["1ROAD_0"].indices} == {(0, 1, 0)}

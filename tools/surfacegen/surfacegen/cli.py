@@ -105,6 +105,7 @@ def main(argv: list[str] | None = None) -> None:
                     help="snap vertices closer than this many metres together to close cracks (0 = off)")
     ap.add_argument("--wall-surface", choices=("WALL", "ROAD"), default="WALL",
                     help="surface key for walls (ROAD = test whether AC collides with them under the road surface)")
+    ap.add_argument("--flip-walls", action="store_true", help="turn all wall faces around (if walls only stop you from inside)")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     a = ap.parse_args(argv)
@@ -145,7 +146,7 @@ def main(argv: list[str] | None = None) -> None:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
     if a.wall_surface == "ROAD" and "WALL" in meshes:
         meshes["ROAD_WALL"] = meshes.pop("WALL")  # mesh name 1ROAD_WALL_n: starts like the working 1ROAD_n
-    write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided)
+    write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided, flip_walls=a.flip_walls)
     total = sum(len(m.indices) // 3 for m in meshes.values())
     logging.info("wrote %s layout %s: %d files, %d triangles (%s)", a.out, a.layout, len(files), total,
                  ", ".join(f"{k} {len(m.indices) // 3}" for k, m in meshes.items()))

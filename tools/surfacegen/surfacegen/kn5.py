@@ -39,7 +39,12 @@ def start_matrix(gta_pos: tuple[float, float, float], gta_heading_deg: float) ->
     return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, x, z, -y, 1]
 
 
-ALWAYS_DOUBLE_SIDED = ("WALL", "ROAD_WALL")  # GTA's wall winding varies; AC must stop the car from either side
+WALL_KEYS = ("WALL", "ROAD_WALL")  # never doubled: coincident opposite faces cancel in AC and the car slides through
+
+
+def _flipped(m: Mesh) -> Mesh:
+    return Mesh(m.vertices, [i for t in range(0, len(m.indices), 3)
+                             for i in (m.indices[t], m.indices[t + 2], m.indices[t + 1])])
 
 
 def _flip_added(m: Mesh) -> Mesh:
@@ -72,12 +77,13 @@ def with_face_normals(m: Mesh) -> Mesh:
 
 
 def write_kn5(path: Path, meshes: dict[str, Mesh], dummies: dict[str, list[float]],
-              visible: bool = False, double_sided: bool = False) -> None:
-    """visible: draw the meshes (debug). double_sided: add every triangle again with opposite winding
-    (walls always get this)."""
-    meshes = {k: _flip_added(m) if k in ALWAYS_DOUBLE_SIDED else m for k, m in meshes.items()}
+              visible: bool = False, double_sided: bool = False, flip_walls: bool = False) -> None:
+    """visible: draw the meshes (debug). double_sided: add every non-wall triangle again with opposite winding.
+    flip_walls: turn every wall face around (if GTA's walls turn out to face inwards)."""
+    if flip_walls:
+        meshes = {k: _flipped(m) if k in WALL_KEYS else m for k, m in meshes.items()}
     if double_sided:
-        meshes = {k: _flip_added(m) if k not in ALWAYS_DOUBLE_SIDED else m for k, m in meshes.items()}
+        meshes = {k: _flip_added(m) if k not in WALL_KEYS else m for k, m in meshes.items()}
     meshes = {k: with_face_normals(m) for k, m in meshes.items()}
     out = bytearray(b"sc6969")
     out += struct.pack("<i", KN5_VERSION)

@@ -117,3 +117,9 @@ def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
     m, _ = read_kn5(out / "gta_ls_downtown.kn5")
     assert not any(n.startswith("1WALL") for n in m)
     assert any(n.startswith("1ROAD_WALL") for n in m)
+
+
+def test_cli_flip_walls_option(tmp_path):
+    out = tmp_path / "gta_ls"
+    cli.main(["--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0", "--flip-walls"])
+    assert (out / "gta_ls_downtown.kn5").exists()
