@@ -63,3 +63,10 @@ def test_shipped_table_loads_and_covers_keys():
     table = load_table()
     assert table["TARMAC"] == "ROAD"
     assert set(table.values()) <= set(AC_KEYS)
+
+
+def test_shipped_table_uses_gta_names_from_materials_dat():
+    table = load_table()
+    assert classify(tri(mat="RUMBLE_STRIP"), table) == "KERB"
+    assert classify(tri(mat="TARMAC_POTHOLE"), table) == "ROAD"
+    assert classify(tri(mat="BREEZE_BLOCK"), table) == "ROAD"
