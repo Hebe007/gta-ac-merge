@@ -11,12 +11,12 @@ float dist(Vec3 a, Vec3 b) {
 std::string gearName(int g) { return g < 0 ? "R" : g == 0 ? "N" : std::to_string(g); }
 }  // namespace
 
-void Puppet::tick(double now, const volatile LinkState* raw) {
+void Puppet::tick(double now, const volatile LinkState* raw, const std::string& shmStatus) {
   LinkFrame f = client_.update(raw, now);
 
   if (g_.linkKeyPressed()) {
     if (linked()) unlink("GTA link off", now);
-    else link(f, now);
+    else link(f, now, raw ? "" : shmStatus);
   }
 
   if (linked()) {
@@ -50,9 +50,10 @@ void Puppet::tick(double now, const volatile LinkState* raw) {
   if (now < msgUntil_) g_.drawText(0.5f, 0.05f, msg_);
 }
 
-void Puppet::link(const LinkFrame& f, double now) {
+void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) {
   if (!f.connected) {
-    say("GTA link: can't see Assetto Corsa's GTA Link data - is the app running?", now);
+    say("GTA link: can't see Assetto Corsa's GTA Link data - is the app running?" +
+            (shmStatus.empty() ? std::string() : " (" + shmStatus + ")"), now);
     return;
   }
   if (!f.fresh) {

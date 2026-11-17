@@ -68,6 +68,13 @@ TEST_CASE("refuses to link when it can't see AC's data at all") {
   CHECK(g.shown("can't see"));
 }
 
+TEST_CASE("shows why the shared memory couldn't be opened") {
+  shm = {}; FakeGame g; Puppet p(g, "sultan");
+  g.key = true;
+  p.tick(1.0, nullptr, "Windows error 5");
+  CHECK(g.shown("Windows error 5"));
+}
+
 TEST_CASE("refuses to link when AC's data stopped updating, and says so") {
   shm = {}; FakeGame g; Puppet p(g, "sultan");
   acWrite({0, 30, 0});

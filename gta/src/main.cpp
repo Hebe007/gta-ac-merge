@@ -28,7 +28,8 @@ static void ScriptMain() {
     LARGE_INTEGER t;
     QueryPerformanceCounter(&t);
     double now = static_cast<double>(t.QuadPart) / static_cast<double>(freq.QuadPart);
-    puppet.tick(now, shm.get(now));
+    const volatile LinkState* raw = shm.get(now);
+    puppet.tick(now, raw, shm.status());
     scriptWait(0);
   }
 }

@@ -10,12 +10,13 @@ constexpr double kMessageSeconds = 4.0;
 class Puppet {
  public:
   Puppet(Game& game, std::string model) : g_(game), model_(std::move(model)) {}
-  void tick(double nowSec, const volatile LinkState* raw);
+  // shmStatus: why the shared memory isn't open (shown when F8 can't link), empty if unknown.
+  void tick(double nowSec, const volatile LinkState* raw, const std::string& shmStatus = "");
   bool linked() const { return veh_ != 0; }
   const std::string& message() const { return msg_; }
 
  private:
-  void link(const LinkFrame& f, double now);
+  void link(const LinkFrame& f, double now, const std::string& shmStatus);
   void unlink(const std::string& why, double now);
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
