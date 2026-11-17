@@ -182,6 +182,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--zmax", type=float, default=1500.0, help="drop collision above this height (sky sets)")
     ap.add_argument("--probe", action="append", default=[], metavar="X,Y",
                     help="after building, show what the finished track has at this GTA spot (repeatable)")
+    ap.add_argument("--probe-file", type=Path,
+                    help="probe every spot in this file (gta_link_holes.txt from the GTA folder: x,y,z per line)")
     ap.add_argument("--engine", choices=("bulk", "python"), default="bulk",
                     help="bulk = NumPy, for the full map (needs: pip install numpy scipy); python = original")
     ap.add_argument("--cache", type=Path, help="cache file (default: next to --xml-dir)")
@@ -276,6 +278,8 @@ def _run_bulk(a) -> None:
     else:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
 
+    if a.probe_file:
+        a.probe += [ln.strip() for ln in a.probe_file.read_text().splitlines() if ln.strip()]
     if a.probe:
         from .probe import report
         for spot in a.probe:

@@ -9,6 +9,13 @@
 
 static HMODULE g_module = nullptr;
 
+static std::string besideAsi(const char* file) {
+  char path[MAX_PATH];
+  GetModuleFileNameA(g_module, path, MAX_PATH);
+  std::string p(path);
+  return p.substr(0, p.find_last_of("\\/") + 1) + file;
+}
+
 static std::string iniValue(const char* key, const char* fallback) {
   char path[MAX_PATH];
   GetModuleFileNameA(g_module, path, MAX_PATH);
@@ -25,6 +32,7 @@ static void ScriptMain() {
   opt.frozen = iniValue("frozen", "1") == "1";
   opt.engineAudio = iniValue("engine_audio", "voltic");
   ShvGame game(opt);
+  game.holesFile = besideAsi("gta_link_holes.txt");
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
   SharedCommand cmd(LINK_CMD_NAME);
   PuppetOptions po;

@@ -35,3 +35,15 @@ def test_generator_probe_shows_placed_interiors(tmp_path, capsys):
               "--layout", "t", "--start", "-2600,2950,20,0", "--probe", "-2600,2955"])
     out = capsys.readouterr().out
     assert "test_tunnel1@1" in out
+
+
+def test_probe_file_probes_every_spot(tmp_path, capsys):
+    from pathlib import Path
+    from surfacegen import cli
+    fix = Path(__file__).parent / "fixtures"
+    holes = tmp_path / "gta_link_holes.txt"
+    holes.write_text("111.0,201.0,1.0\n-50.0,-50.0,0.0\n")
+    cli.main(["--keep-interiors", "--no-cache", "--xml-dir", str(fix), "--out", str(tmp_path / "gta_ls"), "--layout", "t",
+              "--start", "105,202,6,0", "--probe-file", str(holes)])
+    out = capsys.readouterr().out
+    assert "at GTA 111.0, 201.0" in out and "at GTA -50.0, -50.0" in out

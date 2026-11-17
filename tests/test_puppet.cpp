@@ -48,6 +48,8 @@ struct FakeGame : Game {
   bool diag = false;
   bool diagKeyPressed() override { bool k = diag; diag = false; return k; }
   std::string diagnostics(int) override { return "GTA speed 42 km/h"; }
+  std::vector<Vec3> holes;
+  void logHole(Vec3 p) override { holes.push_back(p); }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -374,4 +376,16 @@ TEST_CASE("F7 shows diagnostics while linked") {
   CHECK(g.shown("AC gas"));
   g.diag = true; acWrite({0, 30, 0}); g.texts.clear(); p.tick(1.032, &shm);
   CHECK_FALSE(g.shown("GTA speed"));
+}
+
+TEST_CASE("falling through is logged once per fall") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  g.ground = 30;
+  acWrite({0, 10, 0}); g.key = true; p.tick(1.0, &shm);
+  for (int i = 1; i <= 5; i++) { acWrite({float(i), 10, 0}); p.tick(1.0 + i * 0.016, &shm); }
+  REQUIRE(g.holes.size() == 1);
+  CHECK(g.holes[0].z == doctest::Approx(10));
+  acWrite({0, 30.3f, 0}); p.tick(2.0, &shm);       // back on the road (reset)
+  acWrite({50, 10, 0}); p.tick(2.1, &shm);         // falls again elsewhere
+  CHECK(g.holes.size() == 2);
 }

@@ -33,6 +33,8 @@ class ShvGame : public Game {
   void release(int vehicle) override;
   bool diagKeyPressed() override;
   std::string diagnostics(int vehicle) override;
+  void logHole(Vec3 gtaPos) override;
+  std::string holesFile;  // set by main: next to the .asi
 
  private:
   ShvOptions opt_;

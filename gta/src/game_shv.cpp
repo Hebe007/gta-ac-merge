@@ -161,3 +161,11 @@ std::string ShvGame::diagnostics(int v) {
                 opt_.engineAudio.c_str(), opt_.gtaDamage ? 1 : 0);
   return b;
 }
+
+void ShvGame::logHole(Vec3 p) {
+  if (holesFile.empty()) return;
+  if (FILE* f = std::fopen(holesFile.c_str(), "a")) {
+    std::fprintf(f, "%.1f,%.1f,%.1f\n", p.x, p.y, p.z);
+    std::fclose(f);
+  }
+}
