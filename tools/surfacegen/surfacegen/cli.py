@@ -221,6 +221,14 @@ def _run_bulk(a) -> None:
                      placed, len(ymaps), len(missing))
     if not a.keep_interiors:
         bad = bulk.interior_files(soup)
+        placed_names = {f.split("@")[0] for f in soup.files if "@" in f}
+        unplaced = [soup.files[i] for i in bad
+                    if soup.files[i].lower().removesuffix(".xml").removesuffix(".ybn") not in placed_names]
+        if unplaced:
+            out = a.xml_dir.parent / "unplaced_interiors.txt"
+            out.write_text("\n".join(sorted(unplaced)) + "\n")
+            logging.info("%d interiors have collision but no placement in the map files (listed in %s): %s%s",
+                         len(unplaced), out, ", ".join(sorted(unplaced)[:12]), " ..." if len(unplaced) > 12 else "")
         if bad:
             soup = soup.subset(~np.isin(soup.file, bad))
             shown = [soup.files[i] for i in bad[:8]]
