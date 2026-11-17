@@ -20,6 +20,7 @@ struct FakeGame : Game {
   std::vector<std::string> texts;
   std::string spawnedModel;
   float originH = 0.55f;
+  float steer = 99;
 
   bool playerDeadOrArrested() override { return dead; }
   int playerVehicle() override { return inVehicle; }
@@ -36,17 +37,20 @@ struct FakeGame : Game {
   void drawText(float, float, const std::string& t) override { texts.push_back(t); }
   bool linkKeyPressed() override { bool k = key; key = false; return k; }
   float originHeight(int) override { return originH; }
+  void setSteer(int, float b) override { steer = b; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
 static LinkState shm;
-static void acWrite(Vec3 posAc, float rideHeight = 0) {
+static void acWrite(Vec3 posAc, float rideHeight = 0, float steerDeg = 0, float lockDeg = 0) {
   LinkState s{};
   s.magic = LINK_MAGIC; s.version = LINK_VERSION;
   s.pos[0] = posAc.x; s.pos[1] = posAc.y; s.pos[2] = posAc.z;
   s.fwd[2] = -1; s.up[1] = 1;
   s.speedKmh = 88; s.gear = 4; s.rpm = 4200;
   s.rideHeight = rideHeight;
+  s.steerDeg = steerDeg;
+  s.steerLockDeg = lockDeg;
   s.seq = shm.seq;
   seqWrite(&shm, s);
 }
@@ -224,4 +228,20 @@ TEST_CASE("if GTA's ground isn't loaded at link time, keeps trying and lifts onc
   acWrite({0, 30, 0}); p.tick(1.048, &shm);
   CHECK(g.lastPose.pos.z == doctest::Approx(30.46f));
   CHECK(p.message().find("lift +0.46") != std::string::npos);
+}
+
+TEST_CASE("steers the GTA car's wheels from AC's steering (right in AC = right in GTA)") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({0, 30, 0}, 0, 225, 450); p.tick(1.016, &shm);  // half lock to the right
+  CHECK(g.steer == doctest::Approx(-0.5f));
+  acWrite({0, 30, 0}, 0, -900, 450); p.tick(1.032, &shm);  // past full lock left: clamped
+  CHECK(g.steer == doctest::Approx(1.0f));
+}
+
+TEST_CASE("steer_invert flips the direction; unknown lock uses 450 degrees") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350", 0, true);
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({0, 30, 0}, 0, 225, 0); p.tick(1.016, &shm);
+  CHECK(g.steer == doctest::Approx(0.5f));
 }

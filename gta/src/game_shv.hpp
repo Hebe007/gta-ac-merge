@@ -22,6 +22,7 @@ class ShvGame : public Game {
   void drawText(float x, float y, const std::string& text) override;
   bool linkKeyPressed() override;
   float originHeight(int vehicle) override;
+  void setSteer(int vehicle, float bias) override;
 
  private:
   ShvOptions opt_;

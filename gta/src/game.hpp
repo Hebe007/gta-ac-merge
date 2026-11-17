@@ -22,4 +22,6 @@ class Game {
   virtual bool linkKeyPressed() = 0;  // edge-triggered toggle key (F8)
   // Height of the vehicle's origin above its wheels' ground contact (measured right after spawning).
   virtual float originHeight(int vehicle) = 0;
+  // Front wheel angle as GTA steer bias: -1 full right .. +1 full left. Call every frame.
+  virtual void setSteer(int vehicle, float bias) = 0;
 };

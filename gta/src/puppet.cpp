@@ -34,6 +34,9 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         last_.pos = {last_.pos.x + up.x * lift_, last_.pos.y + up.y * lift_, last_.pos.z + up.z * lift_};
         haveLast_ = true;
         g_.setPose(veh_, last_);
+        float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
+        float bias = std::fmax(-1.f, std::fmin(1.f, -f.steerDeg / lock));
+        g_.setSteer(veh_, steerInvert_ ? -bias : bias);
         float gz;
         if (g_.groundZ({last_.pos.x, last_.pos.y, last_.pos.z + 50.f}, gz) && isOffSurface(last_.pos.z, gz))
           g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");

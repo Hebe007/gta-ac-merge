@@ -94,3 +94,5 @@ float ShvGame::originHeight(int v) {
   if (mn.z < -0.05f) return -mn.z;
   return nat::getEntityHeightAboveGround(v);
 }
+
+void ShvGame::setSteer(int v, float bias) { nat::setVehicleSteerBias(v, bias); }

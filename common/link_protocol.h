@@ -5,7 +5,7 @@
 #include <cstdint>
 
 constexpr uint32_t LINK_MAGIC = 0x47544143;  // "GTAC"
-constexpr uint32_t LINK_VERSION = 2;
+constexpr uint32_t LINK_VERSION = 3;
 
 // Names of the memory-mapped files, opened by CSP's ac.writeMemoryMappedFile. CSP's own examples use the
 // "AcTools.CSP." prefix, so we do too. tools/linkpeek.py shows whether the GTA side sees the data under this name;
@@ -31,6 +31,7 @@ struct LinkState {
   float massKg;
   int32_t gear;  // CSP numbering: -1 reverse, 0 neutral, 1 first
   float rideHeight;  // metres from pos down to the tyre contact plane, along up (0 = unknown)
+  float steerLockDeg;  // steering wheel angle at full lock (0 = unknown); steerDeg / steerLockDeg = -1..1
 };
 
 struct HitItem {

@@ -15,6 +15,7 @@ struct LinkFrame {
   int gear = 0;
   uint32_t resetCounter = 0;
   float rideHeight = 0;
+  float steerDeg = 0, steerLockDeg = 0;
   std::string problem;  // why connected is false although shared memory exists
 };
 

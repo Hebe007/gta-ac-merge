@@ -10,7 +10,9 @@ constexpr double kMessageSeconds = 4.0;
 class Puppet {
  public:
   // heightTrim: extra metres to lift the GTA car (gta_link.ini height_trim), on top of the automatic match.
-  Puppet(Game& game, std::string model, float heightTrim = 0) : g_(game), model_(std::move(model)), trim_(heightTrim) {}
+  // steerInvert: flip the steering direction if GTA's wheels turn the wrong way (gta_link.ini steer_invert).
+  Puppet(Game& game, std::string model, float heightTrim = 0, bool steerInvert = false)
+      : g_(game), model_(std::move(model)), trim_(heightTrim), steerInvert_(steerInvert) {}
   // shmStatus: why the shared memory isn't open (shown when F8 can't link), empty if unknown.
   void tick(double nowSec, const volatile LinkState* raw, const std::string& shmStatus = "");
   bool linked() const { return veh_ != 0; }
@@ -25,6 +27,7 @@ class Puppet {
   Game& g_;
   std::string model_;
   float trim_ = 0;
+  bool steerInvert_ = false;
   float lift_ = 0;
   float gtaH_ = 0;
   bool calPending_ = false;

@@ -7,7 +7,7 @@ import sys
 import time
 
 NAME = "AcTools.CSP.GtaAcLink.State.v1"
-FMT = "<4I3f3f3f3f3f4f4fif"
+FMT = "<4I3f3f3f3f3f4f4fiff"
 SIZE = struct.calcsize(FMT)
 MAGIC = 0x47544143
 
@@ -16,7 +16,7 @@ def decode(buf: bytes) -> dict:
     v = struct.unpack(FMT, buf[:SIZE])
     return {"magic_ok": v[0] == MAGIC, "version": v[1], "seq": v[2], "resets": v[3],
             "pos": v[4:7], "fwd": v[7:10], "up": v[10:13], "vel": v[13:16],
-            "steer_deg": v[23], "rpm": v[24], "speed_kmh": v[25], "mass": v[26], "gear": v[27], "ride_height": v[28]}
+            "steer_deg": v[23], "rpm": v[24], "speed_kmh": v[25], "mass": v[26], "gear": v[27], "ride_height": v[28], "steer_lock": v[29]}
 
 
 def raw_lines(buf: bytes) -> list[str]:
@@ -39,7 +39,7 @@ def main() -> None:
         d = decode(m[:SIZE])
         print(f"magic {'OK' if d['magic_ok'] else 'missing'}  seq {d['seq']:>8}  resets {d['resets']}  "
               f"pos {d['pos'][0]:8.1f} {d['pos'][1]:7.1f} {d['pos'][2]:8.1f}  {d['speed_kmh']:5.0f} km/h  gear {d['gear']}  "
-              f"ride {d['ride_height']:.2f} m  v{d['version']}")
+              f"steer {d['steer_deg']:.0f}/{d['steer_lock']:.0f}  ride {d['ride_height']:.2f} m  v{d['version']}")
         time.sleep(0.5)
 
 
