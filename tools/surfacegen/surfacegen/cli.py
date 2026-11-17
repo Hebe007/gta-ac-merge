@@ -155,6 +155,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--keep-interiors", action="store_true", help="don't leave out files that look like interiors")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
+    ap.add_argument("--map-bounds", choices=("gta", "none"), default="gta",
+                    help="gta = keep Los Santos + Blaine County only (drops North Yankton and far-away DLC sets)")
+    ap.add_argument("--zmin", type=float, default=-20.0, help="drop collision below this height (seabed)")
+    ap.add_argument("--zmax", type=float, default=1500.0, help="drop collision above this height (sky sets)")
     ap.add_argument("--engine", choices=("bulk", "python"), default="bulk",
                     help="bulk = NumPy, for the full map (needs: pip install numpy scipy); python = original")
     ap.add_argument("--cache", type=Path, help="cache file (default: next to --xml-dir)")
@@ -191,6 +195,11 @@ def _run_bulk(a) -> None:
             shown = [soup.files[i] for i in bad[:8]]
             logging.info("left out %d interior files (stored in local coordinates): %s%s", len(bad), ", ".join(shown),
                          " ..." if len(bad) > 8 else "")
+    if a.map_bounds == "gta":
+        before = len(soup.tris)
+        soup = soup.subset(bulk.in_bounds(soup, bulk.GTA_MAP_BOUNDS, a.zmin, a.zmax))
+        logging.info("map bounds: kept %d of %d triangles (dropped North Yankton, far-away sets, seabed, sky)",
+                     len(soup.tris), before)
     counts = np.bincount(soup.file, minlength=len(soup.files))
     small = [f"{soup.files[i]} ({counts[i]})" for i in np.nonzero((counts > 0) & (counts < 50))[0]]
     if small:
@@ -201,6 +210,10 @@ def _run_bulk(a) -> None:
         logging.info("welding seams...")
         soup, merged, dropped = bulk.weld(soup, a.weld)
         logging.info("welded %d vertices within %.0f cm; dropped %d collapsed triangles", merged, a.weld * 100, dropped)
+    soup, dups = bulk.dedupe(soup)
+    logging.info("removed %d duplicate triangles (copies of the same surface, e.g. DLC replacement blocks)", dups)
+    logging.info("densest 2 km areas (GTA x, y: triangles): %s",
+                 ", ".join(f"{x},{y}: {n}" for x, y, n in bulk.busiest_cells(soup)))
 
     logging.info("sorting into surfaces...")
     table = load_table(a.materials_toml)

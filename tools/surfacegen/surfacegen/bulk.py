@@ -331,3 +331,38 @@ def write_kn5(path: Path, meshes: dict[str, np.ndarray], dummies: dict[str, list
             fh.write(n)
         for name, mtx in dummies.items():
             fh.write(_k._base_node(name, mtx, 0))
+
+
+# ---------- size reduction ----------
+
+# Los Santos + Blaine County, without North Yankton (prologue) and far-away DLC sets. GTA x0, y0, x1, y1.
+GTA_MAP_BOUNDS = (-4200.0, -4200.0, 4700.0, 8300.0)
+
+
+def in_bounds(s: Soup, bounds, zmin: float, zmax: float) -> np.ndarray:
+    """Triangles whose centre is inside the map rectangle and between zmin and zmax (drops seabed and sky sets)."""
+    c = s.verts[s.tris].mean(1)
+    x0, y0, x1, y1 = bounds
+    return (c[:, 0] >= x0) & (c[:, 0] <= x1) & (c[:, 1] >= y0) & (c[:, 1] <= y1) & (c[:, 2] >= zmin) & (c[:, 2] <= zmax)
+
+
+def dedupe(s: Soup) -> tuple[Soup, int]:
+    """Drop triangles that use exactly the same three (welded) corners as an earlier one, in any order or winding:
+    DLC replacement blocks often duplicate the original block's collision."""
+    if not len(s.tris):
+        return s, 0
+    key = np.sort(s.tris, axis=1)
+    _, first = np.unique(key, axis=0, return_index=True)
+    keep = np.zeros(len(s.tris), bool)
+    keep[first] = True
+    return s.subset(keep), int((~keep).sum())
+
+
+def busiest_cells(s: Soup, cell: float = 2000.0, top: int = 8) -> list[tuple[int, int, int]]:
+    """(cell x, cell y, triangles) of the densest cell x cell areas, to see where the triangles are."""
+    c = s.verts[s.tris].mean(1)
+    cx = np.floor(c[:, 0] / cell).astype(np.int64)
+    cy = np.floor(c[:, 1] / cell).astype(np.int64)
+    u, n = np.unique(np.stack([cx, cy], 1), axis=0, return_counts=True)
+    order = np.argsort(-n)[:top]
+    return [(int(u[i, 0] * cell), int(u[i, 1] * cell), int(n[i])) for i in order]

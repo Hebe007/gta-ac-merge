@@ -100,3 +100,22 @@ def test_bulk_is_fast_on_a_million_triangles(tmp_path):
     assert time.perf_counter() - t0 < 60
     m, _ = read_kn5(tmp_path / "big.kn5")
     assert sum(len(x.indices) for x in m.values()) == 3 * len(tris)
+
+
+def test_dedupe_drops_copies_of_the_same_triangle_in_any_order():
+    t = Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "T")
+    copy = Tri((1, 0, 0), (0, 1, 0), (0, 0, 0), "T")      # same corners, rotated
+    flipped = Tri((0, 0, 0), (0, 1, 0), (1, 0, 0), "T")   # same corners, other winding: still the same surface
+    other = Tri((5, 0, 0), (6, 0, 0), (5, 1, 0), "T")
+    s, removed = bulk.dedupe(soup_of([t, copy, flipped, other]))
+    assert removed == 2 and len(s.tris) == 2
+
+
+def test_map_bounds_drop_far_away_and_seabed():
+    keep = Tri((100, 100, 30), (101, 100, 30), (100, 101, 30), "T")
+    yankton = Tri((3200, -4800, 100), (3201, -4800, 100), (3200, -4799, 100), "T")
+    seabed = Tri((0, -3000, -200), (1, -3000, -200), (0, -2999, -200), "T")
+    sky = Tri((0, 0, 2400), (1, 0, 2400), (0, 1, 2400), "T")
+    s = soup_of([keep, yankton, seabed, sky])
+    mask = bulk.in_bounds(s, bulk.GTA_MAP_BOUNDS, zmin=-20, zmax=1500)
+    assert mask.tolist() == [True, False, False, False]
