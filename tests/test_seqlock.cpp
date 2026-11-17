@@ -76,3 +76,13 @@ TEST_CASE("StalenessTracker: stale before any read, after 0.25 s without change,
   t.onRead(4, 1.3);
   CHECK_FALSE(t.stale(1.3));
 }
+
+TEST_CASE("a writer that died mid-write (odd seq) does not break the next writer") {
+  static LinkState shared{};
+  shared.seq = 3;  // previous writer crashed between its two increments
+  seqWrite(&shared, filled(1));
+  CHECK(shared.seq % 2 == 0);
+  LinkState out;
+  REQUIRE(seqRead(&shared, out));
+  CHECK(consistent(out));
+}

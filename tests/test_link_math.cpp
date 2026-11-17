@@ -78,3 +78,15 @@ TEST_CASE("isOffSurface threshold 5 m") {
   CHECK(isOffSurface(-10, 0));
   CHECK_FALSE(isOffSurface(-4, 0));
 }
+
+TEST_CASE("hitImpulse: resting on the ground during a long frame is not a hit") {
+  float dt = 0.1f;  // 100 ms hitch; ground support cancels GTA's gravity step
+  CHECK_FALSE(hitImpulse({5, 0, 0}, {5, 0, 0}, dt, 1500, {0, 0, 0}, 10).has_value());
+}
+
+TEST_CASE("hitImpulse: a real upward knock still counts") {
+  float dt = 1.f / 60;
+  auto h = hitImpulse({0, 0, 0}, {0, 0, 2}, dt, 1000, {0, 0, 0}, 10);
+  REQUIRE(h.has_value());
+  checkVec(h->impulse, gtaToAc({0, 0, 2000}));
+}

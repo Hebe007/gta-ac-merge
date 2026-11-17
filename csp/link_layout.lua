@@ -7,6 +7,9 @@ M.HITS_NAME = 'GtaAcLink_Hits_v1'
 M.MAGIC = 0x47544143
 M.VERSION = 1
 
+-- Writers: round seq down to even before writing (seq = seq - seq % 2), then seq+1 (odd, writing),
+-- data, seq+2 (even, done). A writer that died mid-write leaves seq odd; the next one must not inherit it.
+
 M.LINK_STATE = [[
   uint32_t magic;
   uint32_t version;

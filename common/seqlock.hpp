@@ -8,7 +8,8 @@
 template <class T>
 void seqWrite(volatile T* dst, const T& in) {
   auto* d = const_cast<T*>(dst);
-  uint32_t s = static_cast<volatile uint32_t&>(dst->seq);
+  // Round down to even: a writer that died mid-write leaves seq odd, and we must not inherit that.
+  uint32_t s = static_cast<volatile uint32_t&>(dst->seq) & ~1u;
   static_cast<volatile uint32_t&>(dst->seq) = s + 1;  // odd: writing
   std::atomic_thread_fence(std::memory_order_seq_cst);
   T copy = in;

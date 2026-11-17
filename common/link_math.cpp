@@ -71,7 +71,11 @@ std::optional<Impulse> hitImpulse(Vec3 vCmd, Vec3 vAfter, float dt, float massKg
                                   float secondsSinceReset) {
   if (secondsSinceReset < kHitResetQuietSeconds) return std::nullopt;
   Vec3 dv = sub(vAfter, vCmd);
-  dv.z += kGravity * dt;  // GTA's own gravity step is not a hit
+  // GTA's own gravity step is not a hit: in free fall dv.z = -g*dt, resting on the ground dv.z = 0.
+  // Anything in between is "no vertical hit"; only the part beyond free fall counts downward.
+  float g = kGravity * dt;
+  if (dv.z < -g) dv.z += g;
+  else if (dv.z < 0) dv.z = 0;
   float m = length(dv);
   if (m < kHitMinDv) return std::nullopt;
   if (m > kHitMaxDv) dv = mul(dv, kHitMaxDv / m);
