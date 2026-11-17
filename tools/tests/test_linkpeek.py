@@ -13,3 +13,9 @@ def test_decode_matches_layout():
     assert d["magic_ok"] and d["seq"] == 42 and d["resets"] == 3
     assert d["pos"] == (1, 2, 3) and d["fwd"] == (0, 0, -1)
     assert d["rpm"] == 4200 and d["speed_kmh"] == 88 and d["mass"] == 1300 and d["gear"] == 4
+
+
+def test_raw_lines_show_every_slot():
+    buf = struct.pack("<28I", *range(28))
+    lines = linkpeek.raw_lines(buf)
+    assert len(lines) == 28 and "slot  5  int            5" in lines[5]

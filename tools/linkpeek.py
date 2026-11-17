@@ -1,5 +1,6 @@
 """Windows: print what the GTA side would read from AC's shared memory.
     python tools\\linkpeek.py            (Ctrl+C to stop)
+    python tools\\linkpeek.py --raw      (every 4-byte slot as integer and float, once)
 If everything stays 0 while AC drives, the GTA Link app isn't writing under this name."""
 import struct
 import sys
@@ -18,10 +19,20 @@ def decode(buf: bytes) -> dict:
             "steer_deg": v[23], "rpm": v[24], "speed_kmh": v[25], "mass": v[26], "gear": v[27]}
 
 
+def raw_lines(buf: bytes) -> list[str]:
+    ints = struct.unpack("<28I", buf[:SIZE])
+    floats = struct.unpack("<28f", buf[:SIZE])
+    return [f"slot {i:2d}  int {ints[i]:>12}  float {floats[i]:14.4f}" for i in range(28)]
+
+
 def main() -> None:
     import mmap
-    name = sys.argv[1] if len(sys.argv) > 1 else NAME
+    args = [a for a in sys.argv[1:] if a != "--raw"]
+    name = args[0] if args else NAME
     m = mmap.mmap(-1, SIZE, tagname=name, access=mmap.ACCESS_READ)
+    if "--raw" in sys.argv:
+        print("\n".join(raw_lines(m[:SIZE])))
+        return
     print(f"reading {name} ({SIZE} bytes)")
     while True:
         d = decode(m[:SIZE])
