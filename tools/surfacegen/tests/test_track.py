@@ -81,3 +81,10 @@ def test_coverage_report():
     (x0, y0, z0, x1, y1, z1), nearest = coverage(tris, 103, 52)
     assert (x0, y0, x1, y1) == (0, 0, 110, 60)
     assert nearest == pytest.approx(0, abs=4)
+
+
+def test_files_covering_point():
+    from surfacegen.cli import files_covering
+    from surfacegen.ybn_xml import Tri
+    per_file = {"a.xml": [Tri((0, 0, 0), (10, 0, 0), (0, 10, 0), "T")], "b.xml": [Tri((50, 50, 0), (60, 50, 0), (50, 60, 0), "T")]}
+    assert files_covering(per_file, 2, 2) == [("a.xml", 1)]

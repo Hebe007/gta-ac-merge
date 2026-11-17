@@ -30,6 +30,19 @@ def pick_files(xml_dir: Path) -> list[Path]:
     return sorted(keep, key=lambda p: p.name.lower())
 
 
+def files_covering(per_file: dict, x: float, y: float) -> list[tuple[str, int]]:
+    """Files whose horizontal bounding box contains (x, y), with their triangle counts."""
+    out = []
+    for name, tris in per_file.items():
+        if not tris:
+            continue
+        xs = [p[0] for t in tris for p in (t.a, t.b, t.c)]
+        ys = [p[1] for t in tris for p in (t.a, t.b, t.c)]
+        if min(xs) <= x <= max(xs) and min(ys) <= y <= max(ys):
+            out.append((name, len(tris)))
+    return out
+
+
 def coverage(tris, x: float, y: float):
     """GTA bounding box of all triangles, and the horizontal distance from (x, y) to the nearest triangle centre."""
     pts = [p for t in tris for p in (t.a, t.b, t.c)]
@@ -73,7 +86,11 @@ def main(argv: list[str] | None = None) -> None:
 
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
     files = pick_files(a.xml_dir)
-    tris = [t for f in files for t in read_ybn_xml(f, names)]
+    per_file = {f.name: read_ybn_xml(f, names) for f in files}
+    tris = [t for ts in per_file.values() for t in ts]
+    small = [f"{n} ({len(ts)})" for n, ts in per_file.items() if len(ts) < 50]
+    if small:
+        logging.warning("files with almost no collision (possible holes): %s", ", ".join(small))
     table = load_table(a.materials_toml)
     meshes = build_meshes(tris, table, a.bbox)
     summary = Counter((t.material, classify(t, table)) for t in tris if not a.bbox or _inside(t, a.bbox))
@@ -89,6 +106,9 @@ def main(argv: list[str] | None = None) -> None:
     g = ground_under(tris, sx, sy, below=sz + 2)
     if g is None:
         logging.warning("no collision found under the start point (%.1f, %.1f): the car will fall", sx, sy)
+        cover = files_covering(per_file, sx, sy)
+        logging.warning("files whose area contains the start: %s",
+                        ", ".join(f"{n} ({c} triangles)" for n, c in cover) or "none")
     else:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
     write_track(a.out, a.layout, meshes, a.start, visible=a.visible, double_sided=a.double_sided)
