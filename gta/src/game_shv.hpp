@@ -1,8 +1,14 @@
 #pragma once
 #include "game.hpp"
 
+struct ShvOptions {
+  bool gtaDamage = false;  // let GTA damage the car (off: AC is in charge; GTA-only objects can't wreck it)
+  bool frozen = true;      // GTA physics never moves the car: no flips or pushes, but wheels may not turn
+};
+
 class ShvGame : public Game {
  public:
+  explicit ShvGame(ShvOptions o = {}) : opt_(o) {}
   bool playerDeadOrArrested() override;
   int playerVehicle() override;
   int spawnVehicle(const std::string& model, Vec3 pos, float headingDeg) override;
@@ -18,5 +24,7 @@ class ShvGame : public Game {
   float originHeight(int vehicle) override;
 
  private:
+  ShvOptions opt_;
   bool keyWasDown_ = false;
+  int repairCountdown_ = 0;
 };

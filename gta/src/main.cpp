@@ -20,7 +20,10 @@ static std::string iniValue(const char* key, const char* fallback) {
 }
 
 static void ScriptMain() {
-  ShvGame game;
+  ShvOptions opt;
+  opt.gtaDamage = iniValue("gta_damage", "0") == "1";
+  opt.frozen = iniValue("frozen", "1") == "1";
+  ShvGame game(opt);
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
   Puppet puppet(game, iniValue("model", "sultan"), std::strtof(iniValue("height_trim", "0").c_str(), nullptr));
   LARGE_INTEGER freq;

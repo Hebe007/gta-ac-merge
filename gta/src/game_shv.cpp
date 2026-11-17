@@ -19,6 +19,19 @@ int ShvGame::spawnVehicle(const std::string& model, Vec3 p, float heading) {
   nat::setEntityAsMissionEntity(v);
   nat::setVehicleOnGroundProperly(v);
   nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
+  if (!opt_.gtaDamage) {
+    nat::setEntityInvincible(v, TRUE);
+    nat::setEntityCanBeDamaged(v, FALSE);
+    nat::setEntityProofsAll(v);
+    nat::setVehicleCanBeVisiblyDamaged(v, FALSE);
+    nat::setVehicleCanBreak(v, FALSE);
+    nat::setVehicleTyresCanBurst(v, FALSE);
+    nat::setVehicleWheelsCanBreak(v, FALSE);
+    nat::setVehicleStrong(v, TRUE);
+    nat::setDisableVehiclePetrolTankDamage(v, TRUE);
+    nat::setVehicleEngineCanDegrade(v, FALSE);
+  }
+  if (opt_.frozen) nat::freezeEntityPosition(v, TRUE);
   return v;
 }
 
@@ -39,8 +52,14 @@ Vec3 ShvGame::position(int v) {
 void ShvGame::setPose(int v, const Pose& p) {
   nat::setEntityCoordsNoOffset(v, p.pos.x, p.pos.y, p.pos.z);
   nat::setEntityQuaternion(v, p.rot.x, p.rot.y, p.rot.z, p.rot.w);
-  nat::setEntityVelocity(v, p.vel.x, p.vel.y, p.vel.z);
-  nat::setEntityAngularVelocity(v, p.angVel.x, p.angVel.y, p.angVel.z);
+  if (!opt_.frozen) {  // a frozen entity ignores velocity
+    nat::setEntityVelocity(v, p.vel.x, p.vel.y, p.vel.z);
+    nat::setEntityAngularVelocity(v, p.angVel.x, p.angVel.y, p.angVel.z);
+  }
+  if (!opt_.gtaDamage && ++repairCountdown_ >= 60) {  // undo anything that slipped through, about once a second
+    repairCountdown_ = 0;
+    nat::setVehicleFixed(v);
+  }
 }
 
 void ShvGame::disableVehicleControls() {
