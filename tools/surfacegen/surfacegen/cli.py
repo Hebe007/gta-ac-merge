@@ -26,7 +26,7 @@ def _floats(n: int):
     return parse
 
 
-NEGATIVE_OK = ("--at", "--start", "--bbox")
+NEGATIVE_OK = ("--at", "--start", "--bbox", "--probe")
 
 
 def fix_negative_values(argv: list[str]) -> list[str]:
@@ -180,6 +180,8 @@ def main(argv: list[str] | None = None) -> None:
                     help="gta = keep Los Santos + Blaine County only (drops North Yankton and far-away DLC sets)")
     ap.add_argument("--zmin", type=float, default=-20.0, help="drop collision below this height (seabed)")
     ap.add_argument("--zmax", type=float, default=1500.0, help="drop collision above this height (sky sets)")
+    ap.add_argument("--probe", action="append", default=[], metavar="X,Y",
+                    help="after building, show what the finished track has at this GTA spot (repeatable)")
     ap.add_argument("--engine", choices=("bulk", "python"), default="bulk",
                     help="bulk = NumPy, for the full map (needs: pip install numpy scipy); python = original")
     ap.add_argument("--cache", type=Path, help="cache file (default: next to --xml-dir)")
@@ -266,6 +268,11 @@ def _run_bulk(a) -> None:
     else:
         logging.info("ground under start: z=%.2f (start z=%.2f, %.2f m above)", g, sz, sz - g)
 
+    if a.probe:
+        from .probe import report
+        for spot in a.probe:
+            px, py = (float(v) for v in spot.split(",")[:2])
+            report(soup.subset(keys != bulk.KEYS.index("NONE")), px, py, check_filters=False)
     meshes = bulk.build_meshes(soup, keys, a.bbox)
     if len(meshes) == 1:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")

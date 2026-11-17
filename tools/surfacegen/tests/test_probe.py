@@ -19,3 +19,19 @@ def test_probe_reports_files_and_filters(tmp_path, capsys):
     probe.main(["--cache", str(cache), "--at", "220,210"])
     out = capsys.readouterr().out
     assert "road_0.ybn.xml" in out and "z 30.0" in out and "TARMAC" in out
+
+
+def test_generator_probe_shows_placed_interiors(tmp_path, capsys):
+    from pathlib import Path
+    from surfacegen import cli
+    fix = Path(__file__).parent / "fixtures"
+    xml = tmp_path / "xml"
+    xml.mkdir()
+    (xml / "test_tunnel1.ybn.xml").write_text((fix / "small.ybn.xml").read_text())
+    ymap = tmp_path / "ymap"
+    ymap.mkdir()
+    (ymap / "t.ymap.xml").write_text((fix / "tunnel.ymap.xml").read_text())
+    cli.main(["--no-cache", "--xml-dir", str(xml), "--ymap-dir", str(ymap), "--out", str(tmp_path / "gta_ls"),
+              "--layout", "t", "--start", "-2600,2950,20,0", "--probe", "-2600,2955"])
+    out = capsys.readouterr().out
+    assert "test_tunnel1@1" in out

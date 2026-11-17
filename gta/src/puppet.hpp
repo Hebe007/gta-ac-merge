@@ -41,6 +41,7 @@ class Puppet {
   std::string model_;
   PuppetOptions opt_;
   float lift_ = 0;
+  bool showDiag_ = false;
   bool adopted_ = false;       // the car you were in, not one we spawned
   int pendingVeh_ = 0;         // waiting for the AC app to move the AC car here
   uint32_t teleportId_ = 0;

@@ -22,6 +22,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
     else link(f, now, raw ? "data rejected: " + f.problem : shmStatus);
   }
   if (pendingVeh_) finishTeleport(f, now);
+  if (g_.diagKeyPressed()) showDiag_ = !showDiag_;
 
   if (linked()) {
     if (!g_.exists(veh_) || g_.playerDeadOrArrested() || g_.playerVehicle() != veh_) {
@@ -43,6 +44,13 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, bias)));
         if (opt_.pedals) g_.setPedals(veh_, f.gas, f.brake);
         if (offMap(last_.pos)) g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");
+        if (showDiag_) {
+          char d[160];
+          std::snprintf(d, sizeof d, "AC gas %.2f brake %.2f steer %.0f   pedals %d", f.gas, f.brake,
+                        f.steerDeg, opt_.pedals ? 1 : 0);
+          g_.drawText(0.5f, 0.80f, d);
+          g_.drawText(0.5f, 0.84f, g_.diagnostics(veh_));
+        }
         char hud[96];
         std::snprintf(hud, sizeof hud, "%.0f km/h   gear %s   %.0f rpm", f.speedKmh, gearName(f.gear).c_str(), f.rpm);
         g_.drawText(0.85f, 0.92f, hud);

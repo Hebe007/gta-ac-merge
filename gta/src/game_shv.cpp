@@ -1,4 +1,5 @@
 #include "game_shv.hpp"
+#include <cstdio>
 #include <cmath>
 #include "natives_min.hpp"
 
@@ -47,6 +48,9 @@ void ShvGame::setPose(int v, const Pose& p) {
     Follow f = followVelocity(p.pos, {c.x, c.y, c.z}, p.vel, 10.f, 2.f);
     if (f.snap) nat::setEntityCoordsNoOffset(v, p.pos.x, p.pos.y, p.pos.z);
     nat::setEntityQuaternion(v, p.rot.x, p.rot.y, p.rot.z, p.rot.w);
+    // Forward speed first: this native also spins the wheels; then the exact velocity on top.
+    Vec3 fwd = rotate(p.rot, {0, 1, 0});
+    nat::setVehicleForwardSpeed(v, p.vel.x * fwd.x + p.vel.y * fwd.y + p.vel.z * fwd.z);
     nat::setEntityVelocity(v, f.vel.x, f.vel.y, f.vel.z);
     nat::setEntityAngularVelocity(v, p.angVel.x, p.angVel.y, p.angVel.z);
   }
@@ -141,4 +145,19 @@ void ShvGame::release(int v) {
   nat::setVehicleWheelsCanBreak(v, TRUE);
   nat::setVehicleStrong(v, FALSE);
   nat::setVehicleEngineOn(v, TRUE);
+}
+
+bool ShvGame::diagKeyPressed() {
+  bool down = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
+  bool pressed = down && !diagWasDown_;
+  diagWasDown_ = down;
+  return pressed;
+}
+
+std::string ShvGame::diagnostics(int v) {
+  char b[200];
+  std::snprintf(b, sizeof b, "GTA speed %.0f km/h  engine %s  |  ini: frozen %d  engine_audio %s  gta_damage %d",
+                nat::getEntitySpeed(v) * 3.6f, nat::getIsVehicleEngineRunning(v) ? "running" : "OFF", opt_.frozen ? 1 : 0,
+                opt_.engineAudio.c_str(), opt_.gtaDamage ? 1 : 0);
+  return b;
 }

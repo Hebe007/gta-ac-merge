@@ -30,4 +30,7 @@ class Game {
   // Make an existing car (the one you're in) ready to follow AC / give it back afterwards.
   virtual void prepare(int vehicle) = 0;
   virtual void release(int vehicle) = 0;
+  // F7 diagnostics: what GTA itself reports about the car (speed, engine) and the settings it runs with.
+  virtual bool diagKeyPressed() = 0;
+  virtual std::string diagnostics(int vehicle) = 0;
 };

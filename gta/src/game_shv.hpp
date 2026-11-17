@@ -31,9 +31,12 @@ class ShvGame : public Game {
   Quat rotation(int vehicle) override;
   void prepare(int vehicle) override;
   void release(int vehicle) override;
+  bool diagKeyPressed() override;
+  std::string diagnostics(int vehicle) override;
 
  private:
   ShvOptions opt_;
   bool keyWasDown_ = false;
+  bool diagWasDown_ = false;
   int repairCountdown_ = 0;
 };

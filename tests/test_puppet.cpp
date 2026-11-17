@@ -45,6 +45,9 @@ struct FakeGame : Game {
   Quat rotation(int) override { return rot; }
   void prepare(int v) override { prepared.push_back(v); }
   void release(int v) override { released.push_back(v); }
+  bool diag = false;
+  bool diagKeyPressed() override { bool k = diag; diag = false; return k; }
+  std::string diagnostics(int) override { return "GTA speed 42 km/h"; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -361,4 +364,14 @@ TEST_CASE("link message names the script version and build") {
   shm = {}; FakeGame g; Puppet p(g, "zr350");
   acWrite({0, 30, 0}, 0.3f); g.key = true; p.tick(1.0, &shm);
   CHECK(p.message().find("[link v") != std::string::npos);
+}
+
+TEST_CASE("F7 shows diagnostics while linked") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  g.diag = true; acWrite({0, 30, 0}); g.texts.clear(); p.tick(1.016, &shm);
+  CHECK(g.shown("GTA speed 42 km/h"));
+  CHECK(g.shown("AC gas"));
+  g.diag = true; acWrite({0, 30, 0}); g.texts.clear(); p.tick(1.032, &shm);
+  CHECK_FALSE(g.shown("GTA speed"));
 }

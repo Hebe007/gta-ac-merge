@@ -68,4 +68,7 @@ inline void forceUseAudioGameObject(Vehicle v, const char* audio) { invoke<Void>
 inline void getEntityQuaternion(Entity e, float* x, float* y, float* z, float* w) {
   invoke<Void>(0x7B3703D2D32DFA18, e, x, y, z, w);
 }
+inline float getEntitySpeed(Entity e) { return invoke<float>(0xD5037BA82E12416F, e); }
+inline BOOL getIsVehicleEngineRunning(Vehicle v) { return invoke<BOOL>(0xAE31E7DF9B5B132E, v); }
+inline void setVehicleForwardSpeed(Vehicle v, float s) { invoke<Void>(0xAB54A438726D25D5, v, s); }
 }  // namespace nat
