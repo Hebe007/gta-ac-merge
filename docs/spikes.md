@@ -20,3 +20,13 @@ Findings on the way:
 
 ## Spike C — puppet follows AC (runway test), GTA FPS with AC running
 _not run yet_
+
+## Stage 1 in GTA (2026-11-17)
+**Working.** AC (Kunos Z370) drives a GTA ZR350 through downtown: follows smoothly, height matched, off-map warning and
+AC resets carry over. Fixes found on the way:
+- CSP 2.11 lays shared-memory fields out alphabetically: keys are now prefixed `_00_magic`, `_01_version`, ...
+- CSP gives no tyre contact points: AC's ride height is measured against GTA's ground at F8 (retried until loaded).
+- GTA-only props (trees, poles) wrecked/flipped the GTA car: damage-proof + `frozen=1` by default.
+- Walls: AC treats every surfaces.ini entry as drivable ground. `1WALL` meshes must NOT be listed there to act as
+  barriers; also single-sided with real normals (coincident back faces cancelled the collision).
+- Kerbs became walls by slope alone: steep faces under 35 cm stay drivable (`--step-height`).
