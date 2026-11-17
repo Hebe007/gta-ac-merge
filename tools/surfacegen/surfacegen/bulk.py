@@ -128,6 +128,17 @@ def file_boxes(s: Soup) -> tuple[np.ndarray, np.ndarray]:
     n = len(s.files)
     lo = np.full((n, 3), np.inf, np.float32)
     hi = np.full((n, 3), -np.inf, np.float32)
+    if not len(s.tris):
+        return lo, hi
+    if np.all(s.file[1:] >= s.file[:-1]):
+        # Fast path (fresh read or cache): each file's triangles are contiguous, so reduce per run of file ids.
+        starts = np.flatnonzero(np.r_[True, s.file[1:] != s.file[:-1]])
+        ids = s.file[starts]
+        for k in range(3):
+            v = s.verts[s.tris[:, k]]
+            lo[ids] = np.minimum(lo[ids], np.minimum.reduceat(v, starts))
+            hi[ids] = np.maximum(hi[ids], np.maximum.reduceat(v, starts))
+        return lo, hi
     for k in range(3):
         v = s.verts[s.tris[:, k]]
         np.minimum.at(lo, s.file, v)

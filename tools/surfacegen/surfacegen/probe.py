@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> None:
     interiors = set(bulk.interior_files(s))
     cover = np.nonzero((lo[:, 0] <= x) & (hi[:, 0] >= x) & (lo[:, 1] <= y) & (hi[:, 1] >= y))[0]
     print(f"at GTA {x:.1f}, {y:.1f}: {len(cover)} collision file(s) cover this spot")
+    s = s.subset(np.isin(s.file, cover))  # only the files around this spot from here on
     v = s.verts[s.tris]
     r = a.radius  # triangles whose footprint reaches within r of the spot
     near = ((v[:, :, 0].min(1) - r <= x) & (v[:, :, 0].max(1) + r >= x)
