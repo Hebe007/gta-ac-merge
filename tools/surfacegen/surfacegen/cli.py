@@ -23,18 +23,45 @@ def _floats(n: int):
     return parse
 
 
-def pick_files(xml_dir: Path, prefer: str = "normal") -> list[Path]:
-    """All exported .xml files. GTA has a normal ("mover") collision file and a detailed "hi@" one for most
-    blocks; cars drive on the normal one, so by default hi@ is used only where no normal file exists."""
-    files = {p.name.lower(): p for p in xml_dir.iterdir() if p.name.lower().endswith(".xml")}
+def source_rank(folder: str) -> tuple:
+    """Which export folder wins when the same file name appears in several: base game < other DLC packs <
+    patchdayNng (by number) < update (update.rpf) < mods (e.g. NaturalVision)."""
+    n = folder.lower()
+    if n == "base":
+        return (0, 0, n)
+    if n.startswith("patchday"):
+        digits = "".join(c for c in n if c.isdigit())
+        return (2, int(digits or 0), n)
+    if n == "update":
+        return (3, 0, n)
+    if n == "mods":
+        return (4, 0, n)
+    return (1, 0, n)
+
+
+def pick_sources(xml_dir: Path, prefer: str = "normal") -> list[Path]:
+    """All exported .xml files under xml_dir (directly, or in one sub-folder per source - see source_rank).
+    The highest-ranked copy of each file name wins. GTA has a normal ("mover") and a detailed "hi@" collision file
+    for most blocks; cars drive on the normal one, so hi@ is used only where no normal file exists."""
+    best: dict[str, tuple[tuple, Path]] = {}
+    folders = [(source_rank("base"), xml_dir)] + [(source_rank(d.name), d) for d in xml_dir.iterdir() if d.is_dir()]
+    for rank, folder in folders:
+        for p in folder.iterdir():
+            name = p.name.lower()
+            if p.is_file() and name.endswith(".xml") and (name not in best or rank > best[name][0]):
+                best[name] = (rank, p)
     keep = []
-    for name, p in files.items():
+    for name, (_, p) in best.items():
         is_hi = name.startswith("hi@")
         twin = name[3:] if is_hi else "hi@" + name
-        if twin in files and (is_hi == (prefer == "normal")):
+        if twin in best and (is_hi == (prefer == "normal")):
             continue
         keep.append(p)
     return sorted(keep, key=lambda p: p.name.lower())
+
+
+def pick_files(xml_dir: Path, prefer: str = "normal") -> list[Path]:
+    return pick_sources(xml_dir, prefer)
 
 
 def files_covering(per_file: dict, x: float, y: float) -> list[tuple[str, int]]:
@@ -114,8 +141,13 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
-    files = pick_files(a.xml_dir, a.prefer)
-    per_file = {f.name: read_ybn_xml(f, names) for f in files}
+    files = pick_sources(a.xml_dir, a.prefer)
+    logging.info("reading %d collision files", len(files))
+    per_file = {}
+    for i, f in enumerate(files, 1):
+        per_file[f.name] = read_ybn_xml(f, names)
+        if i % 200 == 0:
+            logging.info("  read %d / %d files", i, len(files))
     tris = [t for ts in per_file.values() for t in ts]
     if a.weld > 0:
         tris, merged, dropped = weld(tris, a.weld)

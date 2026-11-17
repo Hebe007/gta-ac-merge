@@ -135,3 +135,37 @@ def test_walls_are_not_listed_as_a_drivable_surface(tmp_path):
     assert [s[sec]["KEY"] for sec in s.sections()] == ["ROAD"]
     m, _ = read_kn5(out / "gta_ls_downtown.kn5")
     assert any(n.startswith("1WALL") for n in m)
+
+
+def _touch(p: Path):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("<BoundsFile/>")
+
+
+def test_source_folders_newest_wins(tmp_path):
+    from surfacegen.cli import pick_sources
+    for f in ["base/dt1_01_0.ybn.xml", "base/dt1_02_0.ybn.xml", "base/hi@dt1_03_0.ybn.xml",
+              "patchday2ng/dt1_01_0.ybn.xml", "patchday27ng/dt1_01_0.ybn.xml", "patchday3ng/dt1_02_0.ybn.xml",
+              "mpheist/hei_dt1_x_0.ybn.xml", "update/dt1_02_0.ybn.xml", "mods/dt1_04_0.ybn.xml",
+              "patchday27ng/dt1_03_0.ybn.xml"]:
+        _touch(tmp_path / f)
+    got = {p.name: p.parent.name for p in pick_sources(tmp_path)}
+    assert got == {"dt1_01_0.ybn.xml": "patchday27ng",  # newest patch beats older patches and base
+                   "dt1_02_0.ybn.xml": "update",        # update.rpf beats patches
+                   "dt1_03_0.ybn.xml": "patchday27ng",  # a normal file anywhere beats hi@
+                   "hei_dt1_x_0.ybn.xml": "mpheist",
+                   "dt1_04_0.ybn.xml": "mods"}
+
+
+def test_source_order():
+    from surfacegen.cli import source_rank
+    names = ["update", "patchday27ng", "base", "mods", "patchday2ng", "mpheist", "patchday10ng"]
+    assert sorted(names, key=source_rank) == ["base", "mpheist", "patchday2ng", "patchday10ng", "patchday27ng",
+                                              "update", "mods"]
+
+
+def test_flat_folder_still_works(tmp_path):
+    from surfacegen.cli import pick_sources
+    _touch(tmp_path / "a_0.ybn.xml")
+    _touch(tmp_path / "hi@a_0.ybn.xml")
+    assert [p.name for p in pick_sources(tmp_path)] == ["a_0.ybn.xml"]

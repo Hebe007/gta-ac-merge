@@ -19,7 +19,7 @@ IDENTITY = [[1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 1.0, 0], [0, 0, 0, 1.0]]
 SKIPPED_SHAPES = ("Sphere", "Capsule", "Cylinder")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Tri:
     a: V3
     b: V3

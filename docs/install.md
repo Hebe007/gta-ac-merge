@@ -39,3 +39,12 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 - `steer_invert`: `1` if GTA's front wheels turn the opposite way to AC's.
 - `gta_damage`: `0` (default) the GTA car is damage-proof; `1` lets GTA damage it.
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.
+
+## Exporting the full map's collision (CodeWalker)
+1. RPF Explorer: search `.ybn`, sort by **Type** and keep the **Static Collisions** rows. Skip names starting `hi@`.
+2. Sort by **Path** and export each source into its own folder under `work\xml\`, named after it:
+   - paths starting `x64?.rpf` -> `work\xml\base\`
+   - `update\update.rpf\...` -> `work\xml\update\`
+   - `update\x64\dlcpacks\<pack>\...` -> `work\xml\<pack>\` (e.g. `patchday27ng`, `mpheist`)
+   - anything from a graphics/map mod folder (e.g. `onigiri`) -> `work\xml\mods\`
+3. The generator keeps the newest copy of each file: base < DLC packs < patchdayN (by number) < update < mods.
