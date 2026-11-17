@@ -139,6 +139,7 @@ def interior_files(s: Soup) -> list[int]:
     """Files that look like interiors stored in local coordinates (see cli.looks_like_interior)."""
     lo, hi = file_boxes(s)
     ok = np.isfinite(lo[:, 0])
+    lo, hi = np.where(ok[:, None], lo, 0), np.where(ok[:, None], hi, 0)  # empty files: no inf maths
     c = (lo + hi) / 2
     size = np.maximum(hi[:, 0] - lo[:, 0], hi[:, 1] - lo[:, 1])
     hit = ok & (np.hypot(c[:, 0], c[:, 1]) < 300) & (size < 300) & (lo[:, 2] < 15) & (hi[:, 2] < 40)
