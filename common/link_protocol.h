@@ -28,7 +28,7 @@ struct LinkState {
   float rpm;
   float speedKmh;
   float massKg;
-  int32_t gear;
+  int32_t gear;  // CSP numbering: -1 reverse, 0 neutral, 1 first
 };
 
 struct HitItem {

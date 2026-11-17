@@ -83,3 +83,25 @@ std::optional<Impulse> hitImpulse(Vec3 vCmd, Vec3 vAfter, float dt, float massKg
 }
 
 bool isOffSurface(float carZ, float groundZ) { return carZ < groundZ - kOffSurfaceMeters; }
+
+Vec3 angularVelocity(Quat from, Quat to, float dt) {
+  if (dt <= 0) return {0, 0, 0};
+  Quat inv{-from.x, -from.y, -from.z, from.w};
+  Quat d = qmul(to, inv);  // world-space delta, matching predict()'s pre-multiply
+  if (d.w < 0) d = {-d.x, -d.y, -d.z, -d.w};
+  float s = std::sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
+  if (s < 1e-7f) return {0, 0, 0};
+  float angle = 2 * std::atan2(s, d.w);
+  return mul(Vec3{d.x / s, d.y / s, d.z / s}, angle / dt);
+}
+
+float gtaHeadingDeg(Vec3 f) {
+  float h = std::atan2(-f.x, f.y) * 57.29577951f;
+  return h < 0 ? h + 360.f : h;
+}
+
+bool validBasis(Vec3 f, Vec3 u) {
+  float lf = length(f), lu = length(u);
+  if (lf < 0.5f || lf > 1.5f || lu < 0.5f || lu > 1.5f) return false;
+  return length(cross(f, u)) > 0.5f * lf * lu;
+}

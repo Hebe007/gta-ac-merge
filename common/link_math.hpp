@@ -26,3 +26,10 @@ std::optional<Impulse> hitImpulse(Vec3 vCommandedGta, Vec3 vAfterGta, float dt, 
 
 constexpr float kOffSurfaceMeters = 5.0f;
 bool isOffSurface(float acCarHeightGta, float gtaGroundZ);
+
+// World-space angular velocity (rad/s) that turns `from` into `to` over dt seconds (shortest way).
+Vec3 angularVelocity(Quat from, Quat to, float dt);
+// GTA heading in degrees (0 = north/+Y, counter-clockwise, 0..360) of a GTA-space forward vector.
+float gtaHeadingDeg(Vec3 forwardGta);
+// True when forward/up are usable: both roughly unit length and not parallel.
+bool validBasis(Vec3 forward, Vec3 up);

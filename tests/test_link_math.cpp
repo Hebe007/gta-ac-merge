@@ -90,3 +90,25 @@ TEST_CASE("hitImpulse: a real upward knock still counts") {
   REQUIRE(h.has_value());
   checkVec(h->impulse, gtaToAc({0, 0, 2000}));
 }
+
+TEST_CASE("angularVelocity recovers a yaw rate from two orientations") {
+  Quat a{0, 0, 0, 1};
+  Quat b{0, 0, std::sin(0.05f), std::cos(0.05f)};  // 0.1 rad about Z
+  Vec3 w = angularVelocity(a, b, 0.01f);           // over 10 ms -> 10 rad/s
+  checkVec(w, {0, 0, 10}, 1e-3f);
+  Quat negB{-b.x, -b.y, -b.z, -b.w};               // same rotation, other hemisphere
+  checkVec(angularVelocity(a, negB, 0.01f), {0, 0, 10}, 1e-3f);
+  checkVec(angularVelocity(a, a, 0.01f), {0, 0, 0});
+}
+
+TEST_CASE("gtaHeadingDeg: 0 north, 90 west, 270 east") {
+  CHECK(gtaHeadingDeg({0, 1, 0}) == doctest::Approx(0).epsilon(1e-4));
+  CHECK(gtaHeadingDeg({-1, 0, 0}) == doctest::Approx(90).epsilon(1e-4));
+  CHECK(gtaHeadingDeg({1, 0, 0}) == doctest::Approx(270).epsilon(1e-4));
+}
+
+TEST_CASE("validBasis rejects zeroed or parallel vectors") {
+  CHECK(validBasis({0, 0, 1}, {0, 1, 0}));
+  CHECK_FALSE(validBasis({0, 0, 0}, {0, 1, 0}));
+  CHECK_FALSE(validBasis({0, 1, 0}, {0, 1, 0}));
+}
