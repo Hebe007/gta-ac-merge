@@ -174,7 +174,7 @@ TEST_CASE("F8 again unlinks") {
 }
 
 TEST_CASE("lifts the GTA car by the difference in ride height plus trim") {
-  shm = {}; FakeGame g; Puppet p(g, "sultan", 0.05f);
+  shm = {}; FakeGame g; Puppet p(g, "sultan", {.heightTrim = 0.05f});
   g.originH = 0.55f;
   acWrite({0, 30, 0}, 0.30f); g.key = true; p.tick(1.0, &shm);
   acWrite({1, 30, 0}, 0.30f); p.tick(1.016, &shm);
@@ -182,7 +182,7 @@ TEST_CASE("lifts the GTA car by the difference in ride height plus trim") {
 }
 
 TEST_CASE("without AC ride height only the trim applies") {
-  shm = {}; FakeGame g; Puppet p(g, "sultan", 0.1f);
+  shm = {}; FakeGame g; Puppet p(g, "sultan", {.heightTrim = 0.1f});
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
   acWrite({1, 30, 0}); p.tick(1.016, &shm);
   CHECK(g.lastPose.pos.z == doctest::Approx(30.1f));
@@ -240,8 +240,17 @@ TEST_CASE("steers the GTA car's wheels from AC's steering (right in AC = right i
 }
 
 TEST_CASE("steer_invert flips the direction; unknown lock uses 450 degrees") {
-  shm = {}; FakeGame g; Puppet p(g, "zr350", 0, true);
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerInvert = true});
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
   acWrite({0, 30, 0}, 0, 225, 0); p.tick(1.016, &shm);
   CHECK(g.steer == doctest::Approx(0.5f));
+}
+
+TEST_CASE("steer_scale widens or narrows the range, steer_offset moves the centre") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerScale = 0.5f, .steerOffset = 0.1f});
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({0, 30, 0}, 0, 225, 450); p.tick(1.016, &shm);  // half right
+  CHECK(g.steer == doctest::Approx(-0.25f + 0.1f));
+  acWrite({0, 30, 0}, 0, 0, 450); p.tick(1.032, &shm);
+  CHECK(g.steer == doctest::Approx(0.1f));
 }

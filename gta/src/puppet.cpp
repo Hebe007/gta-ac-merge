@@ -35,8 +35,8 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         haveLast_ = true;
         g_.setPose(veh_, last_);
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
-        float bias = std::fmax(-1.f, std::fmin(1.f, -f.steerDeg / lock));
-        g_.setSteer(veh_, steerInvert_ ? -bias : bias);
+        float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
+        g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, bias)));
         float gz;
         if (g_.groundZ({last_.pos.x, last_.pos.y, last_.pos.z + 50.f}, gz) && isOffSurface(last_.pos.z, gz))
           g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");
@@ -75,7 +75,7 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   gtaH_ = g_.originHeight(veh_);
   last_ = f.pose;
   haveLast_ = true;
-  lift_ = trim_;
+  lift_ = opt_.heightTrim;
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
   if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
@@ -90,7 +90,7 @@ bool Puppet::calibrate(const LinkFrame& f, double now) {
     if (!g_.groundZ({p.x, p.y, p.z + 1.5f}, gz) || p.z - gz <= -0.2f || p.z - gz >= 1.5f) return false;
     acH = p.z - gz;
   }
-  lift_ = (gtaH_ > 0 ? gtaH_ - acH : 0.f) + trim_;
+  lift_ = (gtaH_ > 0 ? gtaH_ - acH : 0.f) + opt_.heightTrim;
   char m[160];
   std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", acH, gtaH_, lift_);
   say(m, now);

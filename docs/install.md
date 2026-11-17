@@ -37,6 +37,8 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 - `frozen`: `1` (default) GTA physics never moves the car, so trees, poles and walls that only GTA has can't
   shove or flip it; wheels may not animate. `0` lets GTA physics act between updates.
 - `steer_invert`: `1` if GTA's front wheels turn the opposite way to AC's.
+- `steer_scale`: lower it (e.g. `0.5`) if GTA's wheels reach full lock long before yours; raise it if they turn too little.
+- `steer_offset`: centre correction (`+` = left), e.g. `0.05` if GTA's wheels point slightly right when you drive straight.
 - `gta_damage`: `0` (default) the GTA car is damage-proof; `1` lets GTA damage it.
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.
 

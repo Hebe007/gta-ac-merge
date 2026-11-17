@@ -25,8 +25,12 @@ static void ScriptMain() {
   opt.frozen = iniValue("frozen", "1") == "1";
   ShvGame game(opt);
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
-  Puppet puppet(game, iniValue("model", "sultan"), std::strtof(iniValue("height_trim", "0").c_str(), nullptr),
-                iniValue("steer_invert", "0") == "1");
+  PuppetOptions po;
+  po.heightTrim = std::strtof(iniValue("height_trim", "0").c_str(), nullptr);
+  po.steerInvert = iniValue("steer_invert", "0") == "1";
+  po.steerScale = std::strtof(iniValue("steer_scale", "1").c_str(), nullptr);
+  po.steerOffset = std::strtof(iniValue("steer_offset", "0").c_str(), nullptr);
+  Puppet puppet(game, iniValue("model", "sultan"), po);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);
   while (true) {
