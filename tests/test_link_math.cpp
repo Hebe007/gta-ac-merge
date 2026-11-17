@@ -112,3 +112,9 @@ TEST_CASE("validBasis rejects zeroed or parallel vectors") {
   CHECK_FALSE(validBasis({0, 0, 0}, {0, 1, 0}));
   CHECK_FALSE(validBasis({0, 1, 0}, {0, 1, 0}));
 }
+
+TEST_CASE("rotate turns a vector by a quaternion") {
+  Quat yaw90{0, 0, std::sin(0.785398f), std::cos(0.785398f)};  // +90 deg about Z
+  checkVec(rotate(yaw90, {0, 1, 0}), {-1, 0, 0}, 1e-4f);
+  checkVec(rotate({0, 0, 0, 1}, {0, 0, 1}), {0, 0, 1});
+}

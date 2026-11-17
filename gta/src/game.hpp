@@ -20,4 +20,6 @@ class Game {
   virtual bool groundZ(Vec3 above, float& z) = 0;  // false when GTA finds no ground
   virtual void drawText(float x, float y, const std::string& text) = 0;  // screen 0..1
   virtual bool linkKeyPressed() = 0;  // edge-triggered toggle key (F8)
+  // Height of the vehicle's origin above its wheels' ground contact (measured right after spawning).
+  virtual float originHeight(int vehicle) = 0;
 };

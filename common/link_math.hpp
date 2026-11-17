@@ -33,3 +33,6 @@ Vec3 angularVelocity(Quat from, Quat to, float dt);
 float gtaHeadingDeg(Vec3 forwardGta);
 // True when forward/up are usable: both roughly unit length and not parallel.
 bool validBasis(Vec3 forward, Vec3 up);
+
+// Rotate a vector by a unit quaternion.
+Vec3 rotate(Quat q, Vec3 v);

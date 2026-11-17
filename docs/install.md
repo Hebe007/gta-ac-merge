@@ -32,4 +32,6 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 
 ## Settings (`gta_link.ini`)
 - `model`: the GTA car that represents yours (default `sultan`).
+- `height_trim`: extra metres to raise (+) or lower (-) the GTA car. The height is matched automatically from both
+  cars' wheels; use this only for fine-tuning.
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.

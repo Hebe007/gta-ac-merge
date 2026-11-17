@@ -46,4 +46,6 @@ inline void setTextCentre(BOOL c) { invoke<Void>(0xC02F4DBFB51D988B, c); }
 inline void beginTextCommandDisplayText(const char* t) { invoke<Void>(0x25FBB336DF1804CB, t); }
 inline void addTextComponentSubstringPlayerName(const char* t) { invoke<Void>(0x6C188BE134E074AA, t); }
 inline void endTextCommandDisplayText(float x, float y) { invoke<Void>(0xCD015E5BB0D96A57, x, y, 0); }
+inline float getEntityHeightAboveGround(Entity e) { return invoke<float>(0x1DD55701034110E5, e); }
+inline BOOL setVehicleOnGroundProperly(Vehicle v) { return invoke<BOOL>(0x49733E92263139D1, v, 5.0f); }
 }  // namespace nat

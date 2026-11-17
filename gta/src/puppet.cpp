@@ -29,6 +29,8 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         unlink("GTA link off: the car was teleported (press F8 to link again)", now);
       } else if (f.connected && f.fresh) {
         last_ = f.pose;
+        Vec3 up = rotate(last_.rot, {0, 0, 1});
+        last_.pos = {last_.pos.x + up.x * lift_, last_.pos.y + up.y * lift_, last_.pos.z + up.z * lift_};
         haveLast_ = true;
         g_.setPose(veh_, last_);
         float gz;
@@ -66,6 +68,8 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
     return;
   }
   g_.putPlayerIn(veh_);
+  float gtaH = g_.originHeight(veh_);
+  lift_ = (f.rideHeight > 0 && gtaH > 0 ? gtaH - f.rideHeight : 0.f) + trim_;
   last_ = f.pose;
   haveLast_ = true;
   say("GTA link on (F8 to turn off)", now);

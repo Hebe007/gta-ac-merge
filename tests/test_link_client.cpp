@@ -11,7 +11,7 @@ static LinkState acState(Vec3 posAc, Vec3 fwdAc, Vec3 velAc = {0, 0, 0}) {
   s.fwd[0] = fwdAc.x; s.fwd[1] = fwdAc.y; s.fwd[2] = fwdAc.z;
   s.up[1] = 1;
   s.vel[0] = velAc.x; s.vel[1] = velAc.y; s.vel[2] = velAc.z;
-  s.speedKmh = 50; s.rpm = 3000; s.gear = 3; s.massKg = 1300;
+  s.speedKmh = 50; s.rpm = 3000; s.gear = 3; s.massKg = 1300; s.rideHeight = 0.3f;
   return s;
 }
 
@@ -52,6 +52,7 @@ TEST_CASE("converts AC pose to GTA space with heading") {
   CHECK(f.pose.pos.z == doctest::Approx(30));
   CHECK(f.headingDeg == doctest::Approx(0).epsilon(1e-3));
   CHECK(f.gear == 3);
+  CHECK(f.rideHeight == doctest::Approx(0.3f));
 }
 
 TEST_CASE("goes stale when AC stops updating, fresh again when it resumes") {

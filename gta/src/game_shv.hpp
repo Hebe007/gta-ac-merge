@@ -15,6 +15,7 @@ class ShvGame : public Game {
   bool groundZ(Vec3 above, float& z) override;
   void drawText(float x, float y, const std::string& text) override;
   bool linkKeyPressed() override;
+  float originHeight(int vehicle) override;
 
  private:
   bool keyWasDown_ = false;

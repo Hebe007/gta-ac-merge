@@ -17,6 +17,7 @@ int ShvGame::spawnVehicle(const std::string& model, Vec3 p, float heading) {
   nat::setModelAsNoLongerNeeded(h);
   if (!v) return 0;
   nat::setEntityAsMissionEntity(v);
+  nat::setVehicleOnGroundProperly(v);
   nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
   return v;
 }
@@ -66,3 +67,5 @@ bool ShvGame::linkKeyPressed() {
   keyWasDown_ = down;
   return pressed;
 }
+
+float ShvGame::originHeight(int v) { return nat::getEntityHeightAboveGround(v); }

@@ -105,3 +105,9 @@ bool validBasis(Vec3 f, Vec3 u) {
   if (lf < 0.5f || lf > 1.5f || lu < 0.5f || lu > 1.5f) return false;
   return length(cross(f, u)) > 0.5f * lf * lu;
 }
+
+Vec3 rotate(Quat q, Vec3 v) {
+  Quat p{v.x, v.y, v.z, 0};
+  Quat r = qmul(qmul(q, p), Quat{-q.x, -q.y, -q.z, q.w});
+  return {r.x, r.y, r.z};
+}

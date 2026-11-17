@@ -42,5 +42,6 @@ LinkFrame LinkClient::update(const volatile LinkState* raw, double now) {
   f.massKg = last_.massKg;
   f.gear = last_.gear;
   f.resetCounter = last_.resetCounter;
+  f.rideHeight = last_.rideHeight;
   return f;
 }

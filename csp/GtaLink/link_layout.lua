@@ -5,7 +5,7 @@ local M = {}
 M.STATE_NAME = 'AcTools.CSP.GtaAcLink.State.v1'
 M.HITS_NAME = 'AcTools.CSP.GtaAcLink.Hits.v1'
 M.MAGIC = 0x47544143
-M.VERSION = 1
+M.VERSION = 2
 
 -- Writers: round seq down to even before writing (seq = seq - seq % 2), then seq+1 (odd, writing),
 -- data, seq+2 (even, done). A writer that died mid-write leaves seq odd; the next one must not inherit it.
@@ -26,6 +26,7 @@ M.LINK_STATE = [[
   float speedKmh;
   float massKg;
   int32_t gear;
+  float rideHeight;
 ]]
 
 M.HIT_ITEM = [[

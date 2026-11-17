@@ -1,5 +1,6 @@
 // GtaAcLink.asi: ScriptHookV entry point. Reads gta_link.ini next to the .asi, then ticks the puppet every frame.
 #include <windows.h>
+#include <cstdlib>
 #include <string>
 #include "game_shv.hpp"
 #include "main.h"
@@ -21,7 +22,7 @@ static std::string iniValue(const char* key, const char* fallback) {
 static void ScriptMain() {
   ShvGame game;
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
-  Puppet puppet(game, iniValue("model", "sultan"));
+  Puppet puppet(game, iniValue("model", "sultan"), std::strtof(iniValue("height_trim", "0").c_str(), nullptr));
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);
   while (true) {

@@ -19,6 +19,7 @@ struct FakeGame : Game {
   bool key = false;
   std::vector<std::string> texts;
   std::string spawnedModel;
+  float originH = 0.55f;
 
   bool playerDeadOrArrested() override { return dead; }
   int playerVehicle() override { return inVehicle; }
@@ -34,16 +35,18 @@ struct FakeGame : Game {
   bool groundZ(Vec3, float& z) override { z = ground; return hasGround; }
   void drawText(float, float, const std::string& t) override { texts.push_back(t); }
   bool linkKeyPressed() override { bool k = key; key = false; return k; }
+  float originHeight(int) override { return originH; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
 static LinkState shm;
-static void acWrite(Vec3 posAc) {
+static void acWrite(Vec3 posAc, float rideHeight = 0) {
   LinkState s{};
   s.magic = LINK_MAGIC; s.version = LINK_VERSION;
   s.pos[0] = posAc.x; s.pos[1] = posAc.y; s.pos[2] = posAc.z;
   s.fwd[2] = -1; s.up[1] = 1;
   s.speedKmh = 88; s.gear = 4; s.rpm = 4200;
+  s.rideHeight = rideHeight;
   s.seq = shm.seq;
   seqWrite(&shm, s);
 }
@@ -164,4 +167,19 @@ TEST_CASE("F8 again unlinks") {
   g.key = true; acWrite({0, 30, 0}); p.tick(1.016, &shm);
   CHECK_FALSE(p.linked());
   CHECK(g.alive.empty());
+}
+
+TEST_CASE("lifts the GTA car by the difference in ride height plus trim") {
+  shm = {}; FakeGame g; Puppet p(g, "sultan", 0.05f);
+  g.originH = 0.55f;
+  acWrite({0, 30, 0}, 0.30f); g.key = true; p.tick(1.0, &shm);
+  acWrite({1, 30, 0}, 0.30f); p.tick(1.016, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30 + 0.25f + 0.05f));
+}
+
+TEST_CASE("without AC ride height only the trim applies") {
+  shm = {}; FakeGame g; Puppet p(g, "sultan", 0.1f);
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({1, 30, 0}); p.tick(1.016, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30.1f));
 }

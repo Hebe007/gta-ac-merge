@@ -14,6 +14,23 @@ local TELEPORT_METERS = 20
 
 local function set3(dst, v) dst[0], dst[1], dst[2] = v.x, v.y, v.z end
 
+-- Height of car.position above the tyre contact patches, along the car's up (0 if CSP doesn't expose them).
+local function rideHeight(car)
+  local ok, h = pcall(function()
+    local sum, n = 0, 0
+    for i = 0, 3 do
+      local c = car.wheels[i].contactPoint
+      if c then
+        local d = car.position - c
+        sum = sum + d.x * car.up.x + d.y * car.up.y + d.z * car.up.z
+        n = n + 1
+      end
+    end
+    return n > 0 and sum / n or 0
+  end)
+  return ok and h or 0
+end
+
 function script.update(dt)
   if not mem then return end
   local car = ac.getCar(0)
@@ -41,6 +58,7 @@ function script.update(dt)
   mem[K.speedKmh] = car.speedKmh or 0
   mem[K.massKg] = car.mass or 0
   mem[K.gear] = car.gear or 0
+  mem[K.rideHeight] = rideHeight(car)
   seq = seq + 2
   mem[K.seq] = seq  -- even: done
   updates = updates + 1
