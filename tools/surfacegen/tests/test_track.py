@@ -72,3 +72,12 @@ def test_ground_under_start():
     roof = Tri((0, 0, 50), (10, 0, 50), (0, 10, 50), "TARMAC")
     assert ground_under([floor, roof], 2, 2, below=30) == pytest.approx(10.4)
     assert ground_under([floor], 20, 20, below=30) is None
+
+
+def test_coverage_report():
+    from surfacegen.cli import coverage
+    from surfacegen.ybn_xml import Tri
+    tris = [Tri((0, 0, 1), (10, 0, 1), (0, 10, 1), "T"), Tri((100, 50, 5), (110, 50, 5), (100, 60, 5), "T")]
+    (x0, y0, z0, x1, y1, z1), nearest = coverage(tris, 103, 52)
+    assert (x0, y0, x1, y1) == (0, 0, 110, 60)
+    assert nearest == pytest.approx(0, abs=4)

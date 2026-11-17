@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import logging
 from pathlib import Path
 
@@ -27,6 +28,14 @@ def pick_files(xml_dir: Path) -> list[Path]:
     files = {p.name.lower(): p for p in xml_dir.iterdir() if p.name.lower().endswith(".xml")}
     keep = [p for name, p in files.items() if not ("hi@" + name) in files]
     return sorted(keep, key=lambda p: p.name.lower())
+
+
+def coverage(tris, x: float, y: float):
+    """GTA bounding box of all triangles, and the horizontal distance from (x, y) to the nearest triangle centre."""
+    pts = [p for t in tris for p in (t.a, t.b, t.c)]
+    box = tuple(min(p[i] for p in pts) for i in range(3)) + tuple(max(p[i] for p in pts) for i in range(3))
+    nearest = min(math.hypot((t.a[0] + t.b[0] + t.c[0]) / 3 - x, (t.a[1] + t.b[1] + t.c[1]) / 3 - y) for t in tris)
+    return box, nearest
 
 
 def ground_under(tris, x: float, y: float, below: float) -> float | None:
@@ -74,6 +83,9 @@ def main(argv: list[str] | None = None) -> None:
     if not meshes:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")
     sx, sy, sz, _ = a.start
+    (x0, y0, z0, x1, y1, z1), nearest = coverage(tris, sx, sy)
+    logging.info("collision covers GTA x %.0f..%.0f, y %.0f..%.0f, z %.0f..%.0f; nearest triangle %.0f m from start",
+                 x0, x1, y0, y1, z0, z1, nearest)
     g = ground_under(tris, sx, sy, below=sz + 2)
     if g is None:
         logging.warning("no collision found under the start point (%.1f, %.1f): the car will fall", sx, sy)
