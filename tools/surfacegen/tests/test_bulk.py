@@ -119,3 +119,15 @@ def test_map_bounds_drop_far_away_and_seabed():
     s = soup_of([keep, yankton, seabed, sky])
     mask = bulk.in_bounds(s, bulk.GTA_MAP_BOUNDS, zmin=-20, zmax=1500)
     assert mask.tolist() == [True, False, False, False]
+
+
+def test_water_is_left_out_of_the_track(tmp_path):
+    from surfacegen.surfaces import build_meshes as py_build
+    road = Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "TARMAC")
+    water = Tri((5, 0, 0), (6, 0, 0), (5, 1, 0), "WATER")
+    table = load_table()
+    s = soup_of([road, water])
+    keys = bulk.classify(s, table, 0.35)
+    meshes = bulk.build_meshes(s, keys)
+    assert set(meshes) == {"__verts__", "ROAD"}
+    assert set(py_build([road, water], table, None)) == {"ROAD"}

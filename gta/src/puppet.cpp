@@ -37,9 +37,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
         float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
         g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, bias)));
-        float gz;
-        if (g_.groundZ({last_.pos.x, last_.pos.y, last_.pos.z + 50.f}, gz) && isOffSurface(last_.pos.z, gz))
-          g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");
+        if (offMap(last_.pos)) g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa");
         char hud[96];
         std::snprintf(hud, sizeof hud, "%.0f km/h   gear %s   %.0f rpm", f.speedKmh, gearName(f.gear).c_str(), f.rpm);
         g_.drawText(0.85f, 0.92f, hud);
@@ -79,6 +77,14 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
   if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+}
+
+bool Puppet::offMap(Vec3 p) {
+  // Ground right under the car (bridges, overpasses, trees above don't matter)? Then it's fine.
+  float gz;
+  if (g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f) return false;
+  // Otherwise: is GTA's ground well above us, i.e. did we fall through?
+  return g_.groundZ({p.x, p.y, p.z + 50.f}, gz) && isOffSurface(p.z, gz);
 }
 
 bool Puppet::calibrate(const LinkFrame& f, double now) {

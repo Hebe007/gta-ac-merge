@@ -78,9 +78,10 @@ def test_building_materials_are_known_and_trees_are_walls(caplog):
     for m in ("DEFAULT", "METAL_GRILLE", "GLASS_BULLETPROOF", "WOOD_SOLID_SMALL", "PLASTER_SOLID", "CARPET_SOLID",
               "PLASTIC_HOLLOW", "ROOF_FELT", "LINOLEUM", "CERAMIC", "POLYSTYRENE", "TARPAULIN", "CLOTH", "PAPER",
               "FIBREGLASS", "SLATTED_BLINDS", "LAMINATE", "ROOF_TILE", "PUDDLE", "LEATHER", "EMISSIVE_PLASTIC", "VFX_METAL_ELECTRIFIED", "PHYS_ELECTRIC_METAL", "CAR_GLASS_BULLETPROOF",
-              "WATER"):
+              ):
         assert classify(tri(mat=m), table) == "ROAD", m
     assert classify(tri(mat="TREE_BARK"), table) == "WALL"
+    assert classify(tri(mat="WATER"), table) == "NONE"
     assert "unknown" not in caplog.text
 
 

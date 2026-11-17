@@ -19,7 +19,7 @@ from .ybn_xml import Tri, read_ybn_xml
 
 log = logging.getLogger(__name__)
 
-KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "SNOW", "ICE", "WALL")
+KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "SNOW", "ICE", "WALL", "NONE")  # NONE = left out
 WALL = KEYS.index("WALL")
 CACHE_VERSION = 1
 
@@ -246,6 +246,8 @@ def build_meshes(s: Soup, keys: np.ndarray, bbox_gta=None) -> dict[str, np.ndarr
         x0, y0, x1, y1 = bbox_gta
         mask_all = ((c[:, 0] >= min(x0, x1)) & (c[:, 0] <= max(x0, x1)) & (c[:, 1] >= min(y0, y1)) & (c[:, 1] <= max(y0, y1)))
     for ki, key in enumerate(KEYS):
+        if key == "NONE":
+            continue
         t = s.tris[(keys == ki) & mask_all].copy()
         if not len(t):
             continue

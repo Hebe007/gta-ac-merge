@@ -11,7 +11,7 @@ from .ybn_xml import Tri
 
 log = logging.getLogger(__name__)
 
-AC_KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "SNOW", "ICE", "WALL")
+AC_KEYS = ("ROAD", "KERB", "GRASS", "SAND", "GRAVEL", "SNOW", "ICE", "WALL", "NONE")  # NONE = left out
 WALL_SLOPE_DEG = 60.0
 STEP_HEIGHT = 0.35  # steep faces lower than this (kerbs, steps) stay drivable so the wheels climb them
 _COS_WALL = math.cos(math.radians(WALL_SLOPE_DEG))
@@ -88,6 +88,8 @@ def build_meshes(tris: list[Tri], table: dict[str, str], bbox_gta: tuple[float, 
         if bbox_gta and not _inside(t, bbox_gta):
             continue
         key = classify(t, table, step_height)
+        if key == "NONE":
+            continue
         a, b, c = (gta_to_ac(p) for p in (t.a, t.b, t.c))
         if key != "WALL" and _normal(a, b, c)[1] < 0:  # floors face up (+Y) in AC
             b, c = c, b

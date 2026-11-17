@@ -27,7 +27,8 @@ class Puppet {
  private:
   void link(const LinkFrame& f, double now, const std::string& shmStatus);
   void unlink(const std::string& why, double now);
-  bool calibrate(const LinkFrame& f, double now);  // sets lift_ from both cars' heights; false = try again
+  bool calibrate(const LinkFrame& f, double now);
+  bool offMap(Vec3 carPos);  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;

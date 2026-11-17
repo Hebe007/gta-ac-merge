@@ -254,3 +254,26 @@ TEST_CASE("steer_scale widens or narrows the range, steer_offset moves the centr
   acWrite({0, 30, 0}, 0, 0, 450); p.tick(1.032, &shm);
   CHECK(g.steer == doctest::Approx(0.1f));
 }
+
+struct LayeredGame : FakeGame {
+  // ground at 30 (overpass) and at 20 (road under it); probes return the highest ground below the probe point
+  bool groundZ(Vec3 p, float& z) override {
+    if (p.z >= 30) { z = 30; return true; }
+    if (p.z >= 20) { z = 20; return true; }
+    return false;
+  }
+};
+
+TEST_CASE("driving under an overpass is not 'off the map'") {
+  shm = {}; LayeredGame g; Puppet p(g, "zr350");
+  acWrite({0, 20.3f, 0}); g.key = true; p.tick(1.0, &shm);  // car on the lower road, z 20.3
+  acWrite({0, 20.3f, 0}); p.tick(1.016, &shm);
+  CHECK_FALSE(g.shown("Off the map"));
+}
+
+TEST_CASE("really under the map is still detected") {
+  shm = {}; LayeredGame g; Puppet p(g, "zr350");
+  acWrite({0, 10, 0}); g.key = true; p.tick(1.0, &shm);  // 10 m below the lowest ground
+  acWrite({0, 10, 0}); p.tick(1.016, &shm);
+  CHECK(g.shown("Off the map"));
+}
