@@ -3,6 +3,18 @@
 #include <string>
 #include "link_protocol.h"
 
+// Writable command block for the AC app (created here if AC hasn't created it yet).
+class SharedCommand {
+ public:
+  explicit SharedCommand(const std::string& name);
+  ~SharedCommand();
+  volatile LinkCommand* get() { return view_; }
+
+ private:
+  void* mapping_ = nullptr;
+  volatile LinkCommand* view_ = nullptr;
+};
+
 class SharedLink {
  public:
   explicit SharedLink(std::string name) : name_(std::move(name)) {}

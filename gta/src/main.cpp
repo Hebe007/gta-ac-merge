@@ -26,6 +26,7 @@ static void ScriptMain() {
   opt.engineAudio = iniValue("engine_audio", "voltic");
   ShvGame game(opt);
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
+  SharedCommand cmd(LINK_CMD_NAME);
   PuppetOptions po;
   po.heightTrim = std::strtof(iniValue("height_trim", "0").c_str(), nullptr);
   po.steerInvert = iniValue("steer_invert", "0") == "1";
@@ -40,7 +41,7 @@ static void ScriptMain() {
     QueryPerformanceCounter(&t);
     double now = static_cast<double>(t.QuadPart) / static_cast<double>(freq.QuadPart);
     const volatile LinkState* raw = shm.get(now);
-    puppet.tick(now, raw, shm.status());
+    puppet.tick(now, raw, shm.status(), cmd.get());
     scriptWait(0);
   }
 }

@@ -65,4 +65,7 @@ inline void getModelDimensions(Hash h, Vector3* mn, Vector3* mx) { invoke<Void>(
 inline void setVehicleSteerBias(Vehicle v, float b) { invoke<Void>(0x42A8EC77D5150CBE, v, b); }
 inline void setControlValueNextFrame(int group, int control, float v) { invoke<BOOL>(0xE8A25867FBA3B05E, group, control, v); }
 inline void forceUseAudioGameObject(Vehicle v, const char* audio) { invoke<Void>(0x4F0C413926060B38, v, audio); }
+inline void getEntityQuaternion(Entity e, float* x, float* y, float* z, float* w) {
+  invoke<Void>(0x7B3703D2D32DFA18, e, x, y, z, w);
+}
 }  // namespace nat

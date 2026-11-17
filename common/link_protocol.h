@@ -5,13 +5,14 @@
 #include <cstdint>
 
 constexpr uint32_t LINK_MAGIC = 0x47544143;  // "GTAC"
-constexpr uint32_t LINK_VERSION = 4;
+constexpr uint32_t LINK_VERSION = 5;
 
 // Names of the memory-mapped files, opened by CSP's ac.writeMemoryMappedFile. CSP's own examples use the
 // "AcTools.CSP." prefix, so we do too. tools/linkpeek.py shows whether the GTA side sees the data under this name;
 // the GTA side can override it with shm_name in gta_link.ini.
 constexpr const char* LINK_STATE_NAME = "AcTools.CSP.GtaAcLink.State.v1";
 constexpr const char* LINK_HITS_NAME = "AcTools.CSP.GtaAcLink.Hits.v1";
+constexpr const char* LINK_CMD_NAME = "AcTools.CSP.GtaAcLink.Cmd.v1";
 
 // Written by AC (CSP car script) every physics step.
 struct LinkState {
@@ -34,6 +35,18 @@ struct LinkState {
   float steerLockDeg;  // steering wheel angle at full lock (0 = unknown); steerDeg / steerLockDeg = -1..1
   float gas;    // throttle pedal 0..1
   float brake;  // brake pedal 0..1
+  uint32_t teleportAck;    // last LinkCommand.teleportId the AC app handled
+  int32_t teleportStatus;  // for that id: 1 = moved, -1 = CSP refused
+};
+
+// Written by the GTA .asi: requests for the AC app (AC space).
+struct LinkCommand {
+  uint32_t magic;
+  uint32_t version;
+  uint32_t seq;
+  uint32_t teleportId;  // new id = please move the AC car
+  float pos[3];
+  float fwd[3];
 };
 
 struct HitItem {

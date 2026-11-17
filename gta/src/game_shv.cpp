@@ -19,25 +19,7 @@ int ShvGame::spawnVehicle(const std::string& model, Vec3 p, float heading) {
   if (!v) return 0;
   nat::setEntityAsMissionEntity(v);
   nat::setVehicleOnGroundProperly(v);
-  if (opt_.engineAudio == "off") {
-    nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
-  } else {
-    nat::forceUseAudioGameObject(v, opt_.engineAudio.c_str());  // an electric car: near silent
-    nat::setVehicleEngineOn(v, TRUE);  // engine running: dashboard and speedometer work
-  }
-  if (!opt_.gtaDamage) {
-    nat::setEntityInvincible(v, TRUE);
-    nat::setEntityCanBeDamaged(v, FALSE);
-    nat::setEntityProofsAll(v);
-    nat::setVehicleCanBeVisiblyDamaged(v, FALSE);
-    nat::setVehicleCanBreak(v, FALSE);
-    nat::setVehicleTyresCanBurst(v, FALSE);
-    nat::setVehicleWheelsCanBreak(v, FALSE);
-    nat::setVehicleStrong(v, TRUE);
-    nat::setDisableVehiclePetrolTankDamage(v, TRUE);
-    nat::setVehicleEngineCanDegrade(v, FALSE);
-  }
-  if (opt_.frozen) nat::freezeEntityPosition(v, TRUE);
+  prepare(v);
   return v;
 }
 
@@ -117,4 +99,46 @@ void ShvGame::setSteer(int v, float bias) {
 void ShvGame::setPedals(int, float gas, float brake) {
   nat::setControlValueNextFrame(0, 71, std::fmax(0.f, std::fmin(1.f, gas)));    // VehicleAccelerate
   nat::setControlValueNextFrame(0, 72, std::fmax(0.f, std::fmin(1.f, brake)));  // VehicleBrake
+}
+
+Quat ShvGame::rotation(int v) {
+  float x = 0, y = 0, z = 0, w = 1;
+  nat::getEntityQuaternion(v, &x, &y, &z, &w);
+  return {x, y, z, w};
+}
+
+void ShvGame::prepare(int v) {
+  nat::setEntityAsMissionEntity(v);
+  if (opt_.engineAudio == "off") {
+    nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
+  } else {
+    nat::forceUseAudioGameObject(v, opt_.engineAudio.c_str());  // an electric car: near silent
+    nat::setVehicleEngineOn(v, TRUE);  // engine running: dashboard and speedometer work
+  }
+  if (!opt_.gtaDamage) {
+    nat::setEntityInvincible(v, TRUE);
+    nat::setEntityCanBeDamaged(v, FALSE);
+    nat::setEntityProofsAll(v);
+    nat::setVehicleCanBeVisiblyDamaged(v, FALSE);
+    nat::setVehicleCanBreak(v, FALSE);
+    nat::setVehicleTyresCanBurst(v, FALSE);
+    nat::setVehicleWheelsCanBreak(v, FALSE);
+    nat::setVehicleStrong(v, TRUE);
+    nat::setDisableVehiclePetrolTankDamage(v, TRUE);
+    nat::setVehicleEngineCanDegrade(v, FALSE);
+  }
+  if (opt_.frozen) nat::freezeEntityPosition(v, TRUE);
+}
+
+void ShvGame::release(int v) {
+  // Give your car back as a normal GTA car (its engine sound stays the electric one until it's respawned).
+  nat::freezeEntityPosition(v, FALSE);
+  nat::setEntityInvincible(v, FALSE);
+  nat::setEntityCanBeDamaged(v, TRUE);
+  nat::setVehicleCanBeVisiblyDamaged(v, TRUE);
+  nat::setVehicleCanBreak(v, TRUE);
+  nat::setVehicleTyresCanBurst(v, TRUE);
+  nat::setVehicleWheelsCanBreak(v, TRUE);
+  nat::setVehicleStrong(v, FALSE);
+  nat::setVehicleEngineOn(v, TRUE);
 }

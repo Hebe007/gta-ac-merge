@@ -4,8 +4,9 @@ local M = {}
 
 M.STATE_NAME = 'AcTools.CSP.GtaAcLink.State.v1'
 M.HITS_NAME = 'AcTools.CSP.GtaAcLink.Hits.v1'
+M.CMD_NAME = 'AcTools.CSP.GtaAcLink.Cmd.v1'
 M.MAGIC = 0x47544143
-M.VERSION = 4
+M.VERSION = 5
 
 -- Writers: round seq down to even before writing (seq = seq - seq % 2), then seq+1 (odd, writing),
 -- data, seq+2 (even, done). A writer that died mid-write leaves seq odd; the next one must not inherit it.
@@ -30,6 +31,17 @@ M.LINK_STATE = [[
   float steerLockDeg;
   float gas;
   float brake;
+  uint32_t teleportAck;
+  int32_t teleportStatus;
+]]
+
+M.LINK_CMD = [[
+  uint32_t magic;
+  uint32_t version;
+  uint32_t seq;
+  uint32_t teleportId;
+  float pos[3];
+  float fwd[3];
 ]]
 
 M.HIT_ITEM = [[

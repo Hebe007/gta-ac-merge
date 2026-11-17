@@ -11,13 +11,17 @@ float dist(Vec3 a, Vec3 b) {
 std::string gearName(int g) { return g < 0 ? "R" : g == 0 ? "N" : std::to_string(g); }
 }  // namespace
 
-void Puppet::tick(double now, const volatile LinkState* raw, const std::string& shmStatus) {
+void Puppet::tick(double now, const volatile LinkState* raw, const std::string& shmStatus,
+                  volatile LinkCommand* cmd) {
   LinkFrame f = client_.update(raw, now);
 
   if (g_.linkKeyPressed()) {
     if (linked()) unlink("GTA link off", now);
+    else if (pendingVeh_) { pendingVeh_ = 0; say("GTA link: cancelled", now); }
+    else if (cmd && f.connected && f.fresh && g_.playerVehicle()) requestTeleport(g_.playerVehicle(), cmd, now);
     else link(f, now, raw ? "data rejected: " + f.problem : shmStatus);
   }
+  if (pendingVeh_) finishTeleport(f, now);
 
   if (linked()) {
     if (!g_.exists(veh_) || g_.playerDeadOrArrested() || g_.playerVehicle() != veh_) {
@@ -53,6 +57,57 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
   }
 
   if (now < msgUntil_) g_.drawText(0.5f, 0.05f, msg_);
+}
+
+void Puppet::requestTeleport(int veh, volatile LinkCommand* cmd, double now) {
+  Vec3 p = g_.position(veh);
+  float gz;
+  float z = g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f ? gz : p.z - 0.5f;
+  Vec3 acPos = gtaToAc({p.x, p.y, z + 1.f});  // drop it from 1 m above GTA's ground
+  Vec3 acFwd = gtaToAc(rotate(g_.rotation(veh), {0, 1, 0}));
+  LinkCommand c{};
+  c.magic = LINK_MAGIC;
+  c.version = LINK_VERSION;
+  c.seq = cmd->seq;
+  c.teleportId = ++teleportId_;
+  c.pos[0] = acPos.x; c.pos[1] = acPos.y; c.pos[2] = acPos.z;
+  c.fwd[0] = acFwd.x; c.fwd[1] = acFwd.y; c.fwd[2] = acFwd.z;
+  seqWrite(cmd, c);
+  pendingVeh_ = veh;
+  pendingSince_ = now;
+  say("GTA link: moving the Assetto Corsa car to this car...", now);
+}
+
+void Puppet::finishTeleport(const LinkFrame& f, double now) {
+  if (f.connected && f.teleportAck == teleportId_ && f.teleportStatus < 0) {
+    fallbackSpawn(f, now, "Assetto Corsa can't move the car (CSP doesn't allow it here)");
+    return;
+  }
+  Vec3 target = g_.position(pendingVeh_);
+  bool arrived = f.connected && f.fresh && f.teleportAck == teleportId_ && f.teleportStatus > 0 &&
+                 std::fabs(f.pose.pos.x - target.x) < 10.f && std::fabs(f.pose.pos.y - target.y) < 10.f;
+  if (arrived) {
+    veh_ = pendingVeh_;
+    pendingVeh_ = 0;
+    adopted_ = true;
+    g_.prepare(veh_);
+    gtaH_ = g_.originHeight(veh_);
+    last_ = f.pose;
+    haveLast_ = false;  // the AC car just jumped; don't mistake that for a trainer teleport
+    lift_ = opt_.heightTrim;
+    calPending_ = !calibrate(f, now);
+    calUntil_ = now + 5.0;
+    if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+  } else if (now - pendingSince_ > 3.0) {
+    fallbackSpawn(f, now, "Assetto Corsa didn't answer (is the GTA Link app up to date?)");
+  }
+}
+
+void Puppet::fallbackSpawn(const LinkFrame& f, double now, const std::string& why) {
+  pendingVeh_ = 0;
+  link(f, now, "");
+  if (linked()) say(why + " - using a new car at AC's position. " + msg_, now);
+  else say(why + ". " + msg_, now);
 }
 
 void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) {
@@ -105,7 +160,11 @@ bool Puppet::calibrate(const LinkFrame& f, double now) {
 }
 
 void Puppet::unlink(const std::string& why, double now) {
-  if (veh_ && g_.exists(veh_)) g_.deleteVehicle(veh_);
+  if (veh_ && g_.exists(veh_)) {
+    if (adopted_) g_.release(veh_);  // your own car stays
+    else g_.deleteVehicle(veh_);
+  }
+  adopted_ = false;
   veh_ = 0;
   haveLast_ = false;
   say(why, now);

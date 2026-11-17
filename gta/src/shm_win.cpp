@@ -33,3 +33,20 @@ const volatile LinkState* SharedLink::get(double now) {
   view_ = static_cast<const volatile LinkState*>(v);
   return view_;
 }
+
+SharedCommand::SharedCommand(const std::string& name) {
+  mapping_ = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(LinkCommand), name.c_str());
+  if (!mapping_) return;
+  void* v = MapViewOfFile(mapping_, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(LinkCommand));
+  if (!v) {
+    CloseHandle(mapping_);
+    mapping_ = nullptr;
+    return;
+  }
+  view_ = static_cast<volatile LinkCommand*>(v);
+}
+
+SharedCommand::~SharedCommand() {
+  if (view_) UnmapViewOfFile(const_cast<LinkCommand*>(view_));
+  if (mapping_) CloseHandle(mapping_);
+}

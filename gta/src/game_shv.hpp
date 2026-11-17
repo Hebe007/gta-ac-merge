@@ -28,6 +28,9 @@ class ShvGame : public Game {
   float originHeight(int vehicle) override;
   void setSteer(int vehicle, float bias) override;
   void setPedals(int vehicle, float gas, float brake) override;
+  Quat rotation(int vehicle) override;
+  void prepare(int vehicle) override;
+  void release(int vehicle) override;
 
  private:
   ShvOptions opt_;

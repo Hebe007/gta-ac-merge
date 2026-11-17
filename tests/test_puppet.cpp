@@ -22,6 +22,8 @@ struct FakeGame : Game {
   float originH = 0.55f;
   float steer = 99;
   float gas = -1, brake = -1;
+  Quat rot{0, 0, 0, 1};
+  std::vector<int> prepared, released;
 
   bool playerDeadOrArrested() override { return dead; }
   int playerVehicle() override { return inVehicle; }
@@ -40,6 +42,9 @@ struct FakeGame : Game {
   float originHeight(int) override { return originH; }
   void setSteer(int, float b) override { steer = b; }
   void setPedals(int, float g, float b) override { gas = g; brake = b; }
+  Quat rotation(int) override { return rot; }
+  void prepare(int v) override { prepared.push_back(v); }
+  void release(int v) override { released.push_back(v); }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -53,6 +58,8 @@ static void acWrite(Vec3 posAc, float rideHeight = 0, float steerDeg = 0, float 
   s.rideHeight = rideHeight;
   s.steerDeg = steerDeg;
   s.steerLockDeg = lockDeg;
+  s.teleportAck = shm.teleportAck;  // the app keeps reporting its last teleport
+  s.teleportStatus = shm.teleportStatus;
   s.seq = shm.seq;
   seqWrite(&shm, s);
 }
@@ -295,4 +302,57 @@ TEST_CASE("pedals can be switched off") {
   LinkState s = shm; s.gas = 0.7f; seqWrite(&shm, s);
   p.tick(1.016, &shm);
   CHECK(g.gas == doctest::Approx(-1));
+}
+
+static LinkCommand cmd;
+static void acAck(uint32_t id, int32_t status) {
+  LinkState s = shm; s.teleportAck = id; s.teleportStatus = status; seqWrite(&shm, s);
+}
+
+TEST_CASE("F8 in a GTA car asks AC to move there, then uses that car") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.alive.push_back(42); g.inVehicle = 42; g.pos = {100, 200, 30}; g.ground = 29.5f;
+  acWrite({0, 30, 0});
+  g.key = true; p.tick(1.0, &shm, "", &cmd);
+  CHECK_FALSE(p.linked());
+  REQUIRE(cmd.magic == LINK_MAGIC);
+  CHECK(cmd.teleportId == 1);
+  CHECK(cmd.pos[0] == doctest::Approx(100));     // AC = (gta.x, gta.z, -gta.y), dropped from 1 m above GTA's ground
+  CHECK(cmd.pos[1] == doctest::Approx(30.5f));
+  CHECK(cmd.pos[2] == doctest::Approx(-200));
+  CHECK(cmd.fwd[2] == doctest::Approx(-1));      // facing GTA north = AC -Z
+  CHECK(g.shown("moving the Assetto Corsa car"));
+  acAck(1, 1); acWrite({100, 30.5f, -200});
+  p.tick(1.1, &shm, "", &cmd);
+  REQUIRE(p.linked());
+  CHECK(g.spawnedModel.empty());                 // didn't spawn: uses the car you were in
+  CHECK(g.prepared == std::vector<int>{42});
+  g.key = true; acWrite({100, 30.5f, -200}); p.tick(1.2, &shm, "", &cmd);  // F8 again
+  CHECK_FALSE(p.linked());
+  CHECK(g.released == std::vector<int>{42});
+  CHECK(g.exists(42));                           // your car stays
+}
+
+TEST_CASE("if AC can't teleport, F8 in a car falls back to a new car at AC's position") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.alive.push_back(42); g.inVehicle = 42; g.pos = {100, 200, 30};
+  acWrite({0, 30, 0});
+  g.key = true; p.tick(1.0, &shm, "", &cmd);
+  acAck(1, -1); acWrite({0, 30, 0});
+  p.tick(1.1, &shm, "", &cmd);
+  CHECK(p.linked());
+  CHECK(g.spawnedModel == "zr350");
+  CHECK(p.message().find("can't move") != std::string::npos);
+}
+
+TEST_CASE("if AC doesn't answer within 3 s, falls back the same way") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.alive.push_back(42); g.inVehicle = 42;
+  acWrite({0, 30, 0});
+  g.key = true; p.tick(1.0, &shm, "", &cmd);
+  acWrite({0, 30, 0}); p.tick(2.0, &shm, "", &cmd);
+  CHECK_FALSE(p.linked());
+  acWrite({0, 30, 0}); p.tick(4.1, &shm, "", &cmd);
+  CHECK(p.linked());
+  CHECK(g.spawnedModel == "zr350");
 }

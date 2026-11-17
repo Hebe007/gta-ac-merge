@@ -2,7 +2,11 @@
 -- Layout and names: link_layout.lua (must match common/link_protocol.h).
 local L = require('link_layout')
 
+local PLACES = require('places')
 local ITEMS, K = L.items(L.LINK_STATE)
+local CMD_ITEMS, C = L.items(L.LINK_CMD)
+local okCmd, cmd = pcall(ac.writeMemoryMappedFile, L.CMD_NAME, CMD_ITEMS)
+if not okCmd then cmd = nil end
 local ok, mem = pcall(ac.writeMemoryMappedFile, L.STATE_NAME, ITEMS)
 local status = ok and 'publishing' or ('shared memory failed: ' .. tostring(mem))
 if not ok then mem = nil end
@@ -10,6 +14,31 @@ if not ok then mem = nil end
 -- Seqlock writer: round down to even first (a writer that died mid-write leaves seq odd).
 local seq = mem and (mem[K.seq] - mem[K.seq] % 2) or 0
 local resets, lastPos, updates = 0, nil, 0
+-- Teleports: GTA asks through the command block (F8 in a GTA car); the window's place buttons use the same path.
+local lastTeleportId = cmd and cmd[C.teleportId] or 0  -- don't act on a request left from before AC started
+local teleportStatus, teleportMsg = 0, ''
+
+local function teleport(pos, fwd)
+  local ok, err = pcall(physics.setCarPosition, 0, pos, fwd)
+  teleportMsg = ok and 'moved' or ('teleport refused: ' .. tostring(err))
+  return ok
+end
+
+-- GTA coordinates (x, y, z, heading) -> AC position and forward vector
+local function fromGta(x, y, z, heading)
+  local h = math.rad(heading or 0)
+  return vec3(x, z + 1, -y), vec3(-math.sin(h), 0, -math.cos(h))
+end
+
+local function handleCommand()
+  if not cmd or cmd[C.magic] ~= L.MAGIC or cmd[C.seq] % 2 == 1 then return end
+  local id = cmd[C.teleportId]
+  if id == lastTeleportId then return end
+  local p, f = cmd[C.pos], cmd[C.fwd]
+  local pos, fwd = vec3(p[0], p[1], p[2]), vec3(f[0], f[1], f[2])
+  lastTeleportId = id
+  teleportStatus = teleport(pos, fwd) and 1 or -1
+end
 local TELEPORT_METERS = 20
 
 local function set3(dst, v) dst[0], dst[1], dst[2] = v.x, v.y, v.z end
@@ -44,6 +73,7 @@ end
 
 function script.update(dt)
   if not mem then return end
+  handleCommand()
   local car = ac.getCar(0)
   if not car then return end
 
@@ -74,6 +104,8 @@ function script.update(dt)
   mem[K.steerLockDeg] = (okLock and type(lock) == 'number') and lock or 0
   mem[K.gas] = car.gas or 0
   mem[K.brake] = car.brake or 0
+  mem[K.teleportAck] = lastTeleportId
+  mem[K.teleportStatus] = teleportStatus
   seq = seq + 2
   mem[K.seq] = seq  -- even: done
   updates = updates + 1
@@ -84,4 +116,10 @@ function script.windowMain(dt)
   ui.text(string.format('updates: %d   resets: %d', updates, resets))
   if lastPos then ui.text(string.format('pos  %.1f  %.1f  %.1f', lastPos.x, lastPos.y, lastPos.z)) end
   ui.text(string.format('ride height %.2f m (%s)', mem and mem[K.rideHeight] or 0, rideSource))
+  if teleportMsg ~= '' then ui.text('last teleport: ' .. teleportMsg) end
+  ui.separator()
+  ui.text('Teleport to:')
+  for _, place in ipairs(PLACES) do
+    if ui.button(place.name) then teleport(fromGta(place.x, place.y, place.z, place.heading)) end
+  end
 end

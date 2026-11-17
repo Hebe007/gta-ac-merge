@@ -22,7 +22,11 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 1. Start AC on **gta_ls / downtown** (practice) through Content Manager, windowed.
 2. In AC, open the **GTA Link** app from the app sidebar. It should say `publishing` and the update count should climb.
 3. Optional check: `python tools\linkpeek.py` should print `magic OK` with the position changing while you drive.
-4. Start GTA V story mode, then press **F8**. Your car appears where the AC car is; drive with the wheel as usual.
+4. Start GTA V story mode, then press **F8**:
+   - **on foot**: a new GTA car (`model` in the ini) appears where the AC car is;
+   - **in a GTA car**: the AC car is moved to that car and the link uses it (handy with a trainer: spawn or
+     teleport, then F8). If CSP refuses to move the AC car, it falls back to a new car at AC's position.
+   The GTA Link window in AC also has teleport buttons (edit `places.lua` to add your own spots).
 5. **F8** again (or getting out of the car) turns the link off. Reset the car in AC if you fall off the map.
 
 ## On-screen messages

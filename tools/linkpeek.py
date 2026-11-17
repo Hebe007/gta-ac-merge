@@ -7,7 +7,7 @@ import sys
 import time
 
 NAME = "AcTools.CSP.GtaAcLink.State.v1"
-FMT = "<4I3f3f3f3f3f4f4fiffff"
+FMT = "<4I3f3f3f3f3f4f4fiffffIi"
 SIZE = struct.calcsize(FMT)
 MAGIC = 0x47544143
 
@@ -16,7 +16,7 @@ def decode(buf: bytes) -> dict:
     v = struct.unpack(FMT, buf[:SIZE])
     return {"magic_ok": v[0] == MAGIC, "version": v[1], "seq": v[2], "resets": v[3],
             "pos": v[4:7], "fwd": v[7:10], "up": v[10:13], "vel": v[13:16],
-            "steer_deg": v[23], "rpm": v[24], "speed_kmh": v[25], "mass": v[26], "gear": v[27], "ride_height": v[28], "steer_lock": v[29], "gas": v[30], "brake": v[31]}
+            "steer_deg": v[23], "rpm": v[24], "speed_kmh": v[25], "mass": v[26], "gear": v[27], "ride_height": v[28], "steer_lock": v[29], "gas": v[30], "brake": v[31], "teleport_ack": v[32], "teleport_status": v[33]}
 
 
 def raw_lines(buf: bytes) -> list[str]:

@@ -22,6 +22,12 @@ def test_link_state_layout_matches():
     assert lua_layout(lua, "LINK_STATE") == c_struct_fields(h, "LinkState")
 
 
+def test_command_layout_matches():
+    h = (ROOT / "common/link_protocol.h").read_text()
+    lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
+    assert lua_layout(lua, "LINK_CMD") == c_struct_fields(h, "LinkCommand")
+
+
 def test_hit_block_layout_matches():
     h = (ROOT / "common/link_protocol.h").read_text()
     lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
