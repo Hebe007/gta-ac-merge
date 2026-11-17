@@ -39,10 +39,12 @@ M.HIT_BLOCK = [[
   HitItem items[16];
 ]]
 
--- Builds CSP StructItems from a layout string. CSP orders struct fields by the order StructItems are created,
--- so walking the string top to bottom reproduces the C layout.
+-- Builds CSP StructItems from a layout string. Returns (items, keys): `items` goes to ac.writeMemoryMappedFile,
+-- `keys[field]` is the struct key to write that field through (mem[keys.pos][0] = ...).
+-- CSP 2.11 lays fields out in alphabetical key order, so every key is prefixed with its position
+-- (_00_magic, _01_version, ...): alphabetical order and creation order are then both the C order.
 function M.items(layout)
-  local t = {}
+  local items, keys, i = {}, {}, 0
   for typ, name, n in layout:gmatch('([%w_]+)%s+([%w_]+)%[?(%d*)%]?;') do
     local item
     if typ == 'float' then item = ac.StructItem.float()
@@ -50,9 +52,12 @@ function M.items(layout)
     elseif typ == 'uint32_t' then item = ac.StructItem.uint32()
     else error('link_layout: unsupported type ' .. typ) end
     if n ~= '' then item = ac.StructItem.array(item, tonumber(n)) end
-    t[name] = item
+    local key = string.format('_%02d_%s', i, name)
+    items[key] = item
+    keys[name] = key
+    i = i + 1
   end
-  return t
+  return items, keys
 end
 
 return M

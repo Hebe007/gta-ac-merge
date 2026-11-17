@@ -2,12 +2,13 @@
 -- Layout and names: link_layout.lua (must match common/link_protocol.h).
 local L = require('link_layout')
 
-local ok, mem = pcall(ac.writeMemoryMappedFile, L.STATE_NAME, L.items(L.LINK_STATE))
+local ITEMS, K = L.items(L.LINK_STATE)
+local ok, mem = pcall(ac.writeMemoryMappedFile, L.STATE_NAME, ITEMS)
 local status = ok and 'publishing' or ('shared memory failed: ' .. tostring(mem))
 if not ok then mem = nil end
 
 -- Seqlock writer: round down to even first (a writer that died mid-write leaves seq odd).
-local seq = mem and (mem.seq - mem.seq % 2) or 0
+local seq = mem and (mem[K.seq] - mem[K.seq] % 2) or 0
 local resets, lastPos, updates = 0, nil, 0
 local TELEPORT_METERS = 20
 
@@ -22,26 +23,26 @@ function script.update(dt)
   if lastPos and p:distance(lastPos) > TELEPORT_METERS then resets = resets + 1 end  -- reset / restart / teleport
   lastPos = p:clone()
 
-  mem.seq = seq + 1  -- odd: writing
-  mem.magic = L.MAGIC
-  mem.version = L.VERSION
-  mem.resetCounter = resets
-  set3(mem.pos, p)
-  set3(mem.fwd, car.look)
-  set3(mem.up, car.up)
-  set3(mem.vel, car.velocity)
-  mem.angVel[0], mem.angVel[1], mem.angVel[2] = 0, 0, 0  -- GTA side derives it from successive orientations
+  mem[K.seq] = seq + 1  -- odd: writing
+  mem[K.magic] = L.MAGIC
+  mem[K.version] = L.VERSION
+  mem[K.resetCounter] = resets
+  set3(mem[K.pos], p)
+  set3(mem[K.fwd], car.look)
+  set3(mem[K.up], car.up)
+  set3(mem[K.vel], car.velocity)
+  mem[K.angVel][0], mem[K.angVel][1], mem[K.angVel][2] = 0, 0, 0  -- GTA side derives it from successive orientations
   for i = 0, 3 do
     local w = car.wheels and car.wheels[i]
-    mem.wheelSpin[i] = w and w.angularSpeed or 0
+    mem[K.wheelSpin][i] = w and w.angularSpeed or 0
   end
-  mem.steerDeg = car.steer or 0
-  mem.rpm = car.rpm or 0
-  mem.speedKmh = car.speedKmh or 0
-  mem.massKg = car.mass or 0
-  mem.gear = car.gear or 0
+  mem[K.steerDeg] = car.steer or 0
+  mem[K.rpm] = car.rpm or 0
+  mem[K.speedKmh] = car.speedKmh or 0
+  mem[K.massKg] = car.mass or 0
+  mem[K.gear] = car.gear or 0
   seq = seq + 2
-  mem.seq = seq  -- even: done
+  mem[K.seq] = seq  -- even: done
   updates = updates + 1
 end
 
