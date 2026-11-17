@@ -71,5 +71,4 @@ Tunnels and other interiors keep their collision in their own coordinates; the `
    **Map Data** (`.ymap`) rows, and **Export XML** them into `work\ymap\<source>\` with the same source folders as the
    collision (`base`, `update`, `dlc`, `patchdayNNng`, `mods`).
 2. Generate with `--ymap-dir ..\..\work\ymap`. The log says how many interiors it placed.
-3. Check a tunnel with `python -m surfacegen.probe --cache ..\..\work\surfacegen_cache_xml.npz --at X,Y`
-   (the probe reads the cache, so run it after a generate with `--ymap-dir` once to see placed copies in the track).
+3. Drive through a tunnel to check. (The probe shows the raw cache, without placed interiors.)
