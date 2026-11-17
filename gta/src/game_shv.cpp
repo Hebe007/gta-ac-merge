@@ -18,7 +18,12 @@ int ShvGame::spawnVehicle(const std::string& model, Vec3 p, float heading) {
   if (!v) return 0;
   nat::setEntityAsMissionEntity(v);
   nat::setVehicleOnGroundProperly(v);
-  nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
+  if (opt_.engineAudio == "off") {
+    nat::setVehicleEngineOn(v, FALSE);  // AC plays the engine sound
+  } else {
+    nat::forceUseAudioGameObject(v, opt_.engineAudio.c_str());  // an electric car: near silent
+    nat::setVehicleEngineOn(v, TRUE);  // engine running: dashboard and speedometer work
+  }
   if (!opt_.gtaDamage) {
     nat::setEntityInvincible(v, TRUE);
     nat::setEntityCanBeDamaged(v, FALSE);

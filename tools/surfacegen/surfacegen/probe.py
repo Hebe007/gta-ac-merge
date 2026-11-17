@@ -23,7 +23,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--cache", type=Path, required=True)
     ap.add_argument("--at", required=True, help="GTA x,y (from the trainer)")
     ap.add_argument("--radius", type=float, default=8.0)
-    a = ap.parse_args(argv)
+    from .cli import fix_negative_values
+    import sys
+    a = ap.parse_args(fix_negative_values(sys.argv[1:] if argv is None else argv))
     x, y = (float(v) for v in a.at.split(",")[:2])
     s = _load_any(a.cache)
     lo, hi = bulk.file_boxes(s)

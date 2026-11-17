@@ -369,3 +369,47 @@ def busiest_cells(s: Soup, cell: float = 2000.0, top: int = 8) -> list[tuple[int
     u, n = np.unique(np.stack([cx, cy], 1), axis=0, return_counts=True)
     order = np.argsort(-n)[:top]
     return [(int(u[i, 0] * cell), int(u[i, 1] * cell), int(n[i])) for i in order]
+
+
+# ---------- interiors ----------
+
+def _rotate(q, v: np.ndarray) -> np.ndarray:
+    x, y, z, w = q
+    u = np.array([x, y, z], np.float64)
+    t = 2.0 * np.cross(u, v)
+    return v + w * t + np.cross(u, t)
+
+
+def place_interiors(s: Soup, instances) -> tuple[Soup, int, list[str]]:
+    """Add a placed copy of each interior's collision (file named like the interior) at its map position and
+    rotation. Copies are named '<interior>@<n>'; the local-coordinate originals stay (the interior filter drops
+    them). Returns (soup, copies placed, interior names with no collision file)."""
+    by_name = {f.lower().removesuffix(".xml").removesuffix(".ybn"): i for i, f in enumerate(s.files)}
+    verts, tris, mats, files = [s.verts], [s.tris], [s.mat], [s.file]
+    names = list(s.files)
+    nverts = len(s.verts)
+    seen: dict[str, int] = {}
+    missing: list[str] = []
+    placed = 0
+    for name, pos, rot in instances:
+        fid = by_name.get(name)
+        if fid is None:
+            if name not in missing:
+                missing.append(name)
+            continue
+        sel = s.file == fid
+        if not sel.any():
+            continue
+        t = s.tris[sel]
+        used, local = np.unique(t, return_inverse=True)
+        v = _rotate(rot, s.verts[used].astype(np.float64)) + np.asarray(pos, np.float64)
+        seen[name] = seen.get(name, 0) + 1
+        names.append(f"{name}@{seen[name]}")
+        verts.append(v.astype(np.float32))
+        tris.append((local.reshape(-1, 3) + nverts).astype(np.uint32))
+        mats.append(s.mat[sel])
+        files.append(np.full(len(t), len(names) - 1, np.uint32))
+        nverts += len(used)
+        placed += 1
+    out = Soup(np.concatenate(verts), np.concatenate(tris), np.concatenate(mats), np.concatenate(files), s.names, names)
+    return out, placed, missing

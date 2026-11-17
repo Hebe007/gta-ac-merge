@@ -23,6 +23,7 @@ static void ScriptMain() {
   ShvOptions opt;
   opt.gtaDamage = iniValue("gta_damage", "0") == "1";
   opt.frozen = iniValue("frozen", "1") == "1";
+  opt.engineAudio = iniValue("engine_audio", "voltic");
   ShvGame game(opt);
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
   PuppetOptions po;

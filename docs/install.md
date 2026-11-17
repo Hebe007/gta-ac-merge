@@ -39,6 +39,8 @@ Result: `build\gta\Release\GtaAcLink.asi`. The configure step prints `ScriptHook
 - `steer_invert`: `1` if GTA's front wheels turn the opposite way to AC's.
 - `steer_scale`: lower it (e.g. `0.5`) if GTA's wheels reach full lock long before yours; raise it if they turn too little.
 - `steer_offset`: centre correction (`+` = left), e.g. `0.05` if GTA's wheels point slightly right when you drive straight.
+- `engine_audio`: `voltic` (default) keeps the GTA engine running with an electric car's near-silent sound so
+  the dashboard works; `off` turns the engine off (silent, dashboard dark).
 - `gta_damage`: `0` (default) the GTA car is damage-proof; `1` lets GTA damage it.
 - `shm_name`: shared-memory name. Only change if linkpeek shows the data under another name.
 
@@ -62,3 +64,12 @@ The generator keeps the newest copy of each file: base < dlc < patchdays (by num
 - The first run reads all XML and saves `work\surfacegen_cache_xml.npz`. Later runs with the same exported files
   reuse it ("using cache") and skip the slow reading, so changing materials, `--step-height`, walls etc. is quick.
   Re-exporting or changing files makes it read again automatically. `--no-cache` forces a fresh read.
+
+## Interiors (tunnels etc.): exporting the map placement files
+Tunnels and other interiors keep their collision in their own coordinates; the `.ymap` map files say where they go.
+1. RPF Explorer: search `milo` (map files holding interior placements are usually named `..._milo_...`), keep the
+   **Map Data** (`.ymap`) rows, and **Export XML** them into `work\ymap\<source>\` with the same source folders as the
+   collision (`base`, `update`, `dlc`, `patchdayNNng`, `mods`).
+2. Generate with `--ymap-dir ..\..\work\ymap`. The log says how many interiors it placed.
+3. Check a tunnel with `python -m surfacegen.probe --cache ..\..\work\surfacegen_cache_xml.npz --at X,Y`
+   (the probe reads the cache, so run it after a generate with `--ymap-dir` once to see placed copies in the track).

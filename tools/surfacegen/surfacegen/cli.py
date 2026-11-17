@@ -26,6 +26,22 @@ def _floats(n: int):
     return parse
 
 
+NEGATIVE_OK = ("--at", "--start", "--bbox")
+
+
+def fix_negative_values(argv: list[str]) -> list[str]:
+    """argparse reads '--at -2595,3041' as two options; join such values as '--at=-2595,3041'."""
+    out, i = [], 0
+    while i < len(argv):
+        if argv[i] in NEGATIVE_OK and i + 1 < len(argv) and argv[i + 1].startswith("-"):
+            out.append(f"{argv[i]}={argv[i + 1]}")
+            i += 2
+        else:
+            out.append(argv[i])
+            i += 1
+    return out
+
+
 def source_rank(folder: str) -> tuple:
     """Which export folder wins when the same file name appears in several: base game < other DLC packs <
     patchdayNng (by number) < update (update.rpf) < mods (e.g. NaturalVision)."""
@@ -156,6 +172,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--keep-interiors", action="store_true", help="don't leave out files that look like interiors")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
+    ap.add_argument("--ymap-dir", type=Path,
+                    help="CodeWalker XML of .ymap files (one sub-folder per source): places interiors such as tunnels")
     ap.add_argument("--map-bounds", choices=("gta", "none"), default="gta",
                     help="gta = keep Los Santos + Blaine County only (drops North Yankton and far-away DLC sets)")
     ap.add_argument("--zmin", type=float, default=-20.0, help="drop collision below this height (seabed)")
@@ -164,7 +182,7 @@ def main(argv: list[str] | None = None) -> None:
                     help="bulk = NumPy, for the full map (needs: pip install numpy scipy); python = original")
     ap.add_argument("--cache", type=Path, help="cache file (default: next to --xml-dir)")
     ap.add_argument("--no-cache", action="store_true", help="always read the XML, don't write a cache")
-    a = ap.parse_args(argv)
+    a = ap.parse_args(fix_negative_values(sys.argv[1:] if argv is None else argv))
     # stdout, not stderr: PowerShell turns captured stderr lines into red "NativeCommandError" noise
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout)
     if a.engine == "bulk":
@@ -190,6 +208,13 @@ def _run_bulk(a) -> None:
             bulk.save_cache(cache, soup, sig)
             logging.info("saved cache %s", cache)
 
+    if a.ymap_dir:
+        from .ymap_xml import read_mlo_instances
+        ymaps = pick_sources(a.ymap_dir)
+        instances = [i for y in ymaps for i in read_mlo_instances(y)]
+        soup, placed, missing = bulk.place_interiors(soup, instances)
+        logging.info("placed %d interiors from %d map files (%d interior types have no collision file)",
+                     placed, len(ymaps), len(missing))
     if not a.keep_interiors:
         bad = bulk.interior_files(soup)
         if bad:

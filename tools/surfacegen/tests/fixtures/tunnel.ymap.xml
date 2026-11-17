@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written test fixture in CodeWalker's YMAP XML shape. Invented values, no game data. -->
+<CMapData>
+  <name>test_milo_</name>
+  <entities>
+    <Item type="CEntityDef">
+      <archetypeName>prop_tree_big</archetypeName>
+      <position x="1" y="2" z="3" />
+      <rotation x="0" y="0" z="0" w="1" />
+    </Item>
+    <Item type="CMloInstanceDef">
+      <archetypeName>test_tunnel1</archetypeName>
+      <position x="-2600" y="2950" z="15" />
+      <rotation x="0" y="0" z="0.70710678" w="0.70710678" />
+    </Item>
+  </entities>
+</CMapData>
