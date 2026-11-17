@@ -1,6 +1,7 @@
 // Reads AC's LinkState from shared memory and turns it into a GTA-space pose for this frame.
 #pragma once
 #include <cstdint>
+#include <string>
 #include "link_math.hpp"
 #include "link_protocol.h"
 #include "seqlock.hpp"
@@ -13,6 +14,7 @@ struct LinkFrame {
   float speedKmh = 0, rpm = 0, massKg = 0;
   int gear = 0;
   uint32_t resetCounter = 0;
+  std::string problem;  // why connected is false although shared memory exists
 };
 
 class LinkClient {

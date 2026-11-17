@@ -16,7 +16,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
 
   if (g_.linkKeyPressed()) {
     if (linked()) unlink("GTA link off", now);
-    else link(f, now, raw ? "" : shmStatus);
+    else link(f, now, raw ? "data rejected: " + f.problem : shmStatus);
   }
 
   if (linked()) {

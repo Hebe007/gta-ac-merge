@@ -85,3 +85,16 @@ TEST_CASE("estimates yaw rate from successive orientations") {
   LinkFrame f = c.update(&s, 1.01);
   CHECK(f.pose.angVel.z == doctest::Approx(10).epsilon(0.02));
 }
+
+TEST_CASE("explains why data was rejected") {
+  LinkClient c;
+  LinkState s = acState({0, 0, 0}, {0, 0, -1});
+  s.magic = 123;
+  seqWrite(&s, s);
+  CHECK(c.update(&s, 1.0).problem.find("magic") != std::string::npos);
+  LinkState z{};
+  z.magic = LINK_MAGIC; z.version = LINK_VERSION;
+  seqWrite(&z, z);
+  CHECK(c.update(&z, 1.0).problem.find("direction") != std::string::npos);
+  CHECK(c.update(nullptr, 1.0).problem.empty());
+}

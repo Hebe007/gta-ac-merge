@@ -1,16 +1,23 @@
 #include "link_client.hpp"
+#include <cstdio>
 
 LinkFrame LinkClient::update(const volatile LinkState* raw, double now) {
   LinkFrame f;
   if (!raw) return f;
   LinkState s;
   if (!seqRead(raw, s)) {
-    if (!have_) return f;
+    if (!have_) { f.problem = "writer busy (seq " + std::to_string(s.seq) + ")"; return f; }
     s = last_;  // writer busy this instant: reuse the last good state
   }
-  if (s.magic != LINK_MAGIC || s.version != LINK_VERSION) return f;
+  if (s.magic != LINK_MAGIC) { f.problem = "wrong magic " + std::to_string(s.magic); return f; }
+  if (s.version != LINK_VERSION) { f.problem = "version " + std::to_string(s.version) + ", expected " + std::to_string(LINK_VERSION); return f; }
   Vec3 fwd{s.fwd[0], s.fwd[1], s.fwd[2]}, up{s.up[0], s.up[1], s.up[2]};
-  if (!validBasis(fwd, up)) return f;
+  if (!validBasis(fwd, up)) {
+    char b[128];
+    std::snprintf(b, sizeof b, "bad direction fwd %.2f %.2f %.2f up %.2f %.2f %.2f", fwd.x, fwd.y, fwd.z, up.x, up.y, up.z);
+    f.problem = b;
+    return f;
+  }
 
   stale_.onRead(s.seq, now);
   if (!have_ || s.seq != last_.seq) {

@@ -75,6 +75,16 @@ TEST_CASE("shows why the shared memory couldn't be opened") {
   CHECK(g.shown("Windows error 5"));
 }
 
+TEST_CASE("shows why AC's data was rejected") {
+  shm = {}; FakeGame g; Puppet p(g, "sultan");
+  acWrite({0, 30, 0});
+  shm.version = 99;
+  g.key = true;
+  p.tick(1.0, &shm);
+  CHECK_FALSE(p.linked());
+  CHECK(g.shown("version"));
+}
+
 TEST_CASE("refuses to link when AC's data stopped updating, and says so") {
   shm = {}; FakeGame g; Puppet p(g, "sultan");
   acWrite({0, 30, 0});
