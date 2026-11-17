@@ -46,9 +46,25 @@ def classify(t: Tri, table: dict[str, str], step_height: float = STEP_HEIGHT) ->
     best = max((k for k in table if k.endswith("*") and t.material.startswith(k[:-1])), key=len, default=None)
     if best:
         return table[best]
+    guess = guess_surface(t.material)
     if t.material not in _warned:
         _warned.add(t.material)
-        log.warning("unknown GTA material %s -> ROAD", t.material)
+        log.warning("unknown GTA material %s -> %s (guessed from its name)", t.material, guess)
+    return guess
+
+
+KEYWORDS = (  # first match wins
+    (("GRASS", "BUSH", "LEAVES", "HAY", "MOSS", "PLANT", "HEDGE", "TWIG"), "GRASS"),
+    (("SAND",), "SAND"),
+    (("GRAVEL", "MUD", "DIRT", "CLAY", "SOIL", "ROCK"), "GRAVEL"),
+)
+
+
+def guess_surface(material: str) -> str:
+    m = material.upper()
+    for words, key in KEYWORDS:
+        if any(w in m for w in words):
+            return key
     return "ROAD"
 
 

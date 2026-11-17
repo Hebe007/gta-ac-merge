@@ -143,3 +143,15 @@ def test_low_steep_faces_like_kerbs_stay_drivable():
 def test_trees_stay_walls_even_when_short_pieces():
     bark = Tri((0, 0, 0), (0.2, 0, 0), (0, 0, 0.2), "TREE_BARK")
     assert classify(bark, {"TREE_BARK": "WALL"}) == "WALL"
+
+
+def test_unknown_materials_are_guessed_from_keywords(caplog):
+    caplog.set_level(logging.WARNING)
+    table = {"TARMAC": "ROAD"}
+    assert classify(tri(mat="BUSH_THICK"), table) == "GRASS"
+    assert classify(tri(mat="LEAVES_PILE"), table) == "GRASS"
+    assert classify(tri(mat="SAND_DRY_DEEP"), table) == "SAND"
+    assert classify(tri(mat="MUD_UNDERWATER"), table) == "GRAVEL"
+    assert classify(tri(mat="ROCK_NOINST"), table) == "GRAVEL"
+    assert classify(tri(mat="ANIMAL_DEFAULT"), table) == "ROAD"
+    assert "BUSH_THICK" in caplog.text  # still reported, as a guess
