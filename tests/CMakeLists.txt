@@ -1,5 +1,5 @@
 find_package(Threads REQUIRED)
-foreach(t test_link_math)
+foreach(t test_link_math test_seqlock)
   add_executable(${t} ${t}.cpp)
   target_link_libraries(${t} linkcommon Threads::Threads)
   add_test(NAME ${t} COMMAND ${t})
