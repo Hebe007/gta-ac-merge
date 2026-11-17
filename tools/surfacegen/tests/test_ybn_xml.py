@@ -62,3 +62,10 @@ def _sub(a, b):
 
 def _cross(a, b):
     return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def test_materials_dat_given_as_folder(tmp_path):
+    folder = tmp_path / "materials.dat"  # CodeWalker's raw export can create a folder with this name
+    folder.mkdir()
+    (folder / "materials.dat").write_text((FIX / "materials.dat").read_text())
+    assert read_materials_dat(folder)[:2] == ["DEFAULT", "TARMAC"]

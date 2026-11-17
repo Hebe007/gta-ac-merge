@@ -28,8 +28,14 @@ class Tri:
 
 def read_materials_dat(path: Path) -> list[str]:
     """Material names in index order from GTA's materials.dat (export it with CodeWalker from common.rpf)."""
+    path = Path(path)
+    if path.is_dir():  # CodeWalker's raw export can create a folder named materials.dat
+        inner = sorted(path.rglob("materials.dat"))
+        if not inner:
+            raise SystemExit(f"{path} is a folder with no materials.dat inside")
+        path = inner[0]
     names = []
-    for line in Path(path).read_text(errors="replace").splitlines():
+    for line in path.read_text(errors="replace").splitlines():
         tok = line.split()
         if not tok or tok[0].startswith("#") or _is_number(tok[0]):
             continue
