@@ -108,3 +108,12 @@ def test_cli_welds_by_default_and_reports(tmp_path, caplog):
     cli.main(["--xml-dir", str(FIX), "--out", str(tmp_path / "gta_ls2"), "--layout", "downtown", "--start", "105,202,6,0",
               "--weld", "0"])
     assert "welded" not in caplog.text
+
+
+def test_cli_wall_surface_option_renames_wall_meshes(tmp_path):
+    out = tmp_path / "gta_ls"
+    cli.main(["--xml-dir", str(FIX), "--out", str(out), "--layout", "downtown", "--start", "105,202,6,0",
+              "--wall-surface", "ROAD"])
+    m, _ = read_kn5(out / "gta_ls_downtown.kn5")
+    assert not any(n.startswith("1WALL") for n in m)
+    assert any(n.startswith("1ROAD_WALL") for n in m)

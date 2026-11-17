@@ -38,7 +38,7 @@ def start_matrix(gta_pos: tuple[float, float, float], gta_heading_deg: float) ->
     return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, x, z, -y, 1]
 
 
-ALWAYS_DOUBLE_SIDED = ("WALL",)  # GTA's wall winding varies; AC must stop the car from either side
+ALWAYS_DOUBLE_SIDED = ("WALL", "ROAD_WALL")  # GTA's wall winding varies; AC must stop the car from either side
 
 
 def _flip_added(m: Mesh) -> Mesh:

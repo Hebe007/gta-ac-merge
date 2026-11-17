@@ -48,7 +48,8 @@ def write_track(out: Path, layout: str, meshes: dict[str, Mesh], start_gta: tupl
     data = out / layout / "data"
     data.mkdir(parents=True, exist_ok=True)
     sections = []
-    for i, key in enumerate(k for k in SURFACES if k in meshes):
+    used = {('ROAD' if k == 'ROAD_WALL' else k) for k in meshes}
+    for i, key in enumerate(k for k in SURFACES if k in used):
         lines = [f"[SURFACE_{i}]", f"KEY={key}"] + [f"{k}={v}" for k, v in SURFACES[key].items()]
         lines += ["BLACK_FLAG_TIME=0", "IS_PITLANE=0"]
         sections.append("\n".join(lines))

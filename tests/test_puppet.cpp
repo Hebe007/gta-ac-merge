@@ -192,3 +192,22 @@ TEST_CASE("link message shows the height match") {
   CHECK(p.message().find("GTA 0.62") != std::string::npos);
   CHECK(p.message().find("+0.32") != std::string::npos);
 }
+
+TEST_CASE("without AC ride height, measures it against GTA's ground at link time") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  g.originH = 0.61f;
+  g.ground = 29.85f;  // AC car position is 0.15 m above GTA's road
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  CHECK(p.message().find("AC 0.15") != std::string::npos);
+  acWrite({1, 30, 0}); p.tick(1.016, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30 + 0.46f));
+}
+
+TEST_CASE("ground measurement ignores silly values") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  g.originH = 0.61f;
+  g.ground = 25.0f;  // 5 m below: probably a gap or bridge, don't trust it
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({1, 30, 0}); p.tick(1.016, &shm);
+  CHECK(g.lastPose.pos.z == doctest::Approx(30));
+}

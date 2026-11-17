@@ -69,11 +69,18 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   }
   g_.putPlayerIn(veh_);
   float gtaH = g_.originHeight(veh_);
-  lift_ = (f.rideHeight > 0 && gtaH > 0 ? gtaH - f.rideHeight : 0.f) + trim_;
+  float acH = f.rideHeight;
+  if (acH <= 0.05f) {
+    // AC didn't say: the car is standing on the road right now, so measure AC's position against GTA's ground.
+    float gz;
+    Vec3 p = f.pose.pos;
+    if (g_.groundZ({p.x, p.y, p.z + 1.5f}, gz) && p.z - gz > -0.2f && p.z - gz < 1.5f) acH = p.z - gz;
+  }
+  lift_ = (acH > -0.2f && acH != 0.f && gtaH > 0 ? gtaH - acH : 0.f) + trim_;
   last_ = f.pose;
   haveLast_ = true;
   char m[160];
-  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", f.rideHeight, gtaH,
+  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", acH, gtaH,
                 lift_);
   say(m, now);
 }
