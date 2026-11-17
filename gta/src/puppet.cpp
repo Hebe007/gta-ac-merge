@@ -153,8 +153,9 @@ bool Puppet::calibrate(const LinkFrame& f, double now) {
     acH = p.z - gz;
   }
   lift_ = (gtaH_ > 0 ? gtaH_ - acH : 0.f) + opt_.heightTrim;
-  char m[160];
-  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m", acH, gtaH_, lift_);
+  char m[256];
+  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m  [link v%u, built %s %s]",
+                acH, gtaH_, lift_, LINK_VERSION, __DATE__, __TIME__);
   say(m, now);
   return true;
 }

@@ -131,3 +131,18 @@ def test_water_is_left_out_of_the_track(tmp_path):
     meshes = bulk.build_meshes(s, keys)
     assert set(meshes) == {"__verts__", "ROAD"}
     assert set(py_build([road, water], table, None)) == {"ROAD"}
+
+
+def test_kerb_faces_get_a_ramp_in_front():
+    kerb = Tri((0, 0, 0), (1, 0, 0), (0, 0, 0.15), "CONCRETE")    # 15 cm vertical face, facing -y
+    wall = Tri((5, 0, 0), (6, 0, 0), (5, 0, 2.0), "CONCRETE")     # 2 m: a real wall, no ramp
+    floor = Tri((0, 1, 0.15), (1, 1, 0.15), (0, 2, 0.15), "CONCRETE")
+    s = soup_of([kerb, wall, floor])
+    keys = bulk.classify(s, load_table(), 0.35)
+    s2, keys2, added = bulk.ramp_kerbs(s, keys, 0.35, 2.5)
+    assert added == 1 and len(s2.tris) == 4
+    ramp = s2.verts[s2.tris[-1]]
+    assert sorted(map(tuple, np.round(ramp.astype(float), 3).tolist())) == [(0, -0.375, 0), (0, 0, 0.15), (1, -0.375, 0)]
+    assert bulk.KEYS[keys2[-1]] == "ROAD"
+    s3, _, none = bulk.ramp_kerbs(s, keys, 0.35, 0)
+    assert none == 0 and len(s3.tris) == 3

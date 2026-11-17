@@ -356,3 +356,9 @@ TEST_CASE("if AC doesn't answer within 3 s, falls back the same way") {
   CHECK(p.linked());
   CHECK(g.spawnedModel == "zr350");
 }
+
+TEST_CASE("link message names the script version and build") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}, 0.3f); g.key = true; p.tick(1.0, &shm);
+  CHECK(p.message().find("[link v") != std::string::npos);
+}

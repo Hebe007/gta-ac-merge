@@ -424,3 +424,32 @@ def place_interiors(s: Soup, instances) -> tuple[Soup, int, list[str]]:
         placed += 1
     out = Soup(np.concatenate(verts), np.concatenate(tris), np.concatenate(mats), np.concatenate(files), s.names, names)
     return out, placed, missing
+
+
+# ---------- kerb ramps ----------
+
+def ramp_kerbs(s: Soup, keys: np.ndarray, step_height: float, ratio: float) -> tuple[Soup, np.ndarray, int]:
+    """For every low steep drivable face (kerb sides, steps), add a sloped copy whose bottom edge sits `ratio` x
+    the face height out in front of it, so AC's tyres roll up a short ramp instead of hitting a vertical step."""
+    if ratio <= 0 or not len(s.tris):
+        return s, keys, 0
+    v = s.verts[s.tris].astype(np.float64)
+    n = np.cross(v[:, 1] - v[:, 0], v[:, 2] - v[:, 0])
+    length = np.linalg.norm(n, axis=1)
+    steep = np.abs(n[:, 2]) < (math.cos(math.radians(WALL_SLOPE_DEG)) - 1e-9) * np.maximum(length, 1e-12)
+    zmin, zmax = v[:, :, 2].min(1), v[:, :, 2].max(1)
+    height = zmax - zmin
+    pick = steep & (length > 0) & (height > 0.02) & (height < step_height) & (keys != WALL) & (keys != KEYS.index("NONE"))
+    if not pick.any():
+        return s, keys, 0
+    vp, nh, hp = v[pick], n[pick, :2], height[pick]
+    nh = nh / np.maximum(np.linalg.norm(nh, axis=1, keepdims=True), 1e-12)
+    bottom = vp[:, :, 2] < (zmin[pick][:, None] + 0.01)  # corners on the bottom edge move out
+    shift = np.zeros_like(vp)
+    shift[:, :, :2] = (nh * (ratio * hp)[:, None])[:, None, :] * bottom[:, :, None]
+    new_v = (vp + shift).reshape(-1, 3).astype(np.float32)
+    base = len(s.verts)
+    new_t = (np.arange(len(new_v), dtype=np.uint32) + base).reshape(-1, 3)
+    out = Soup(np.concatenate([s.verts, new_v]), np.concatenate([s.tris, new_t]), np.concatenate([s.mat, s.mat[pick]]),
+               np.concatenate([s.file, s.file[pick]]), s.names, s.files)
+    return out, np.concatenate([keys, keys[pick]]), int(pick.sum())

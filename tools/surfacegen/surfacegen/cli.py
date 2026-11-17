@@ -168,6 +168,8 @@ def main(argv: list[str] | None = None) -> None:
                     help="surface key for walls (ROAD = test whether AC collides with them under the road surface)")
     ap.add_argument("--step-height", type=float, default=0.35,
                     help="steep faces lower than this many metres (kerbs) stay drivable instead of becoming walls")
+    ap.add_argument("--kerb-ramp", type=float, default=2.5,
+                    help="ramp in front of kerbs/steps, as a multiple of their height (0 = sharp steps)")
     ap.add_argument("--flip-walls", action="store_true", help="turn all wall faces around (if walls only stop you from inside)")
     ap.add_argument("--keep-interiors", action="store_true", help="don't leave out files that look like interiors")
     ap.add_argument("--visible", action="store_true", help="debug: draw the surfaces in AC")
@@ -251,6 +253,9 @@ def _run_bulk(a) -> None:
     for i in np.argsort(-c):
         logging.info("  %8d  %s -> %s", c[i], soup.names[u[i] // len(bulk.KEYS)], bulk.KEYS[u[i] % len(bulk.KEYS)])
 
+    soup, keys, ramps = bulk.ramp_kerbs(soup, keys, a.step_height, a.kerb_ramp)
+    if ramps:
+        logging.info("added ramps in front of %d kerb and step faces", ramps)
     sx, sy, sz, _ = a.start
     (x0, y0, z0, x1, y1, z1), nearest = bulk.coverage(soup, sx, sy)
     logging.info("collision covers GTA x %.0f..%.0f, y %.0f..%.0f, z %.0f..%.0f; nearest triangle %.0f m from start",
