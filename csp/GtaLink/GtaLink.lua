@@ -18,9 +18,21 @@ local resets, lastPos, updates = 0, nil, 0
 local lastTeleportId = cmd and cmd[C.teleportId] or 0  -- don't act on a request left from before AC started
 local teleportStatus, teleportMsg = 0, ''
 
+local simTime, quietUntil = 0, 0  -- quietUntil: ignore jumps in speed we caused ourselves (teleport, repair)
+local keepVel = nil  -- velocity to give back after a reset in place (F9): setCarPosition stops the car
+
 local function teleport(pos, fwd)
+  local car = ac.getCar(0)
+  keepVel = nil
+  if car and car.position:distance(pos) < 20 then  -- a reset where the car is, not a move to another car
+    local f = fwd:clone():normalize()
+    local v = car.velocity
+    local along = v.x * car.look.x + v.y * car.look.y + v.z * car.look.z  -- negative when reversing
+    keepVel = vec3(f.x * along, f.y * along, f.z * along)
+  end
   -- setCarPosition's direction is the car's BACK (CSP's own debug app passes -cameraLook): send it reversed
   local ok, err = pcall(physics.setCarPosition, 0, pos, -fwd)
+  quietUntil = simTime + 0.5
   teleportMsg = ok and 'moved' or ('teleport refused: ' .. tostring(err))
   return ok
 end
@@ -72,56 +84,81 @@ local function rideHeight(car)
   return 0
 end
 
--- Crash damage that AC's damage slider doesn't cover: blown tyres and bent suspension make the car pull to one side.
--- Watch for it and repair the car where it is (fuel kept). Rear toe never changes with steering, so a change in it
--- means a bent rear axle; front wheels are checked through suspensionDamage.
+-- Crash damage that AC's damage slider doesn't cover makes the car pull to one side after a hard crash or landing.
+-- resetCarState repairs it, so repair shortly after every hard hit (fuel and speed kept), and note what had changed
+-- (wheel angles, tyres, body) to learn what the damage was.
 local autoRepair, repairMsg, repairs, lastRepair = true, '', 0, -10
-local baseToe, simTime = nil, 0
-local WHEEL = { [0] = 'front left', 'front right', 'rear left', 'rear right' }
+local prevVel, impactAt, impactG = nil, nil, 0
+local base = nil
+local WHEEL = { [0] = 'FL', 'FR', 'RL', 'RR' }
+local IMPACT_G = 5  -- a change of velocity this hard (in g, within one frame) counts as a crash or hard landing
 
-local function damageFound(car)
-  local okW, why = pcall(function()
+local function snapshot(car)
+  local ok, s = pcall(function()
+    local t = { body = 0 }
     for i = 0, 3 do
       local w = car.wheels[i]
-      if w.isBlown then return 'blown tyre ' .. WHEEL[i] end
-      if (w.suspensionDamage or 0) > 0.01 then
-        return string.format('suspension damage %s (%.2f)', WHEEL[i], w.suspensionDamage)
-      end
+      t[i] = { toe = w.toeIn or 0, camber = w.camber or 0, blown = w.isBlown, susp = w.suspensionDamage or 0,
+               flat = w.tyreFlatSpot or 0, radius = w.tyreLoadedRadius or 0 }
     end
-    if baseToe then
-      for i = 2, 3 do
-        local d = (car.wheels[i].toeIn or 0) - baseToe[i]
-        if math.abs(d) > 1.0 then return string.format('bent %s (toe %+.1f deg)', WHEEL[i], d) end
-      end
-    end
-    return nil
+    if car.damage then for i = 0, 3 do t.body = t.body + (car.damage[i] or 0) end end
+    return t
   end)
-  return okW and why or nil
+  return ok and s or nil
+end
+
+local function changes(car)
+  local now = snapshot(car)
+  if not now or not base then return '' end
+  local out = {}
+  for i = 0, 3 do
+    local a, b = base[i], now[i]
+    if b.blown and not a.blown then out[#out + 1] = WHEEL[i] .. ' blown' end
+    if b.susp - a.susp > 0.001 then out[#out + 1] = string.format('%s susp %.2f', WHEEL[i], b.susp) end
+    if i >= 2 and math.abs(b.toe - a.toe) > 0.2 then out[#out + 1] = string.format('%s toe %+.1f', WHEEL[i], b.toe - a.toe) end
+    if math.abs(b.camber - a.camber) > 0.5 then out[#out + 1] = string.format('%s camber %+.1f', WHEEL[i], b.camber - a.camber) end
+    if b.flat - a.flat > 0.05 then out[#out + 1] = string.format('%s flat spot %.2f', WHEEL[i], b.flat) end
+  end
+  if now.body - base.body > 1 then out[#out + 1] = string.format('body %.0f', now.body) end
+  return #out > 0 and table.concat(out, ', ') or 'nothing measurable changed'
 end
 
 local function repair(car, why)
-  local fuel = car.fuel
+  local fuel, vel = car.fuel, car.velocity:clone()
+  local changed = changes(car)
   local ok, err = pcall(physics.resetCarState, 0, 1)
   if ok and fuel then pcall(physics.setCarFuel, 0, fuel) end
+  if ok then keepVel = vel end  -- in case the repair slows the car
   repairs = repairs + 1
   lastRepair = simTime
-  baseToe = nil  -- measure the straight car again
-  repairMsg = ok and ('repaired: ' .. why) or ('repair refused: ' .. tostring(err))
+  base = nil  -- measure the repaired car again
+  repairMsg = ok and string.format('repaired (%s): %s', why, changed) or ('repair refused: ' .. tostring(err))
 end
 
 local function watchDamage(car, dt)
   simTime = simTime + dt
-  if not baseToe and (car.speedKmh or 0) < 200 then
-    local ok, t = pcall(function() return { [2] = car.wheels[2].toeIn, [3] = car.wheels[3].toeIn } end)
-    if ok and t[2] and t[3] then baseToe = t end
+  if not base and simTime - lastRepair > 0.5 then base = snapshot(car) end
+  local v = car.velocity
+  if prevVel and dt > 0 then
+    local g = (v - prevVel):length() / dt / 9.81
+    if g > IMPACT_G and not impactAt and simTime > quietUntil then impactAt, impactG = simTime, g end
+    if impactAt then impactG = math.max(impactG, g) end
   end
-  if not autoRepair or simTime - lastRepair < 1 then return end
-  local why = damageFound(car)
-  if why then repair(car, why) end
+  prevVel = v:clone()
+  -- repair once the hit is over (0.3 s), at most once a second
+  if autoRepair and impactAt and simTime - impactAt > 0.3 then
+    if simTime - lastRepair > 1 then repair(car, string.format('hit %.0f g', impactG)) end
+    impactAt = nil
+  end
 end
 
 function script.update(dt)
   if not mem then return end
+  if keepVel then  -- the frame after a reset in place or a repair: give the car its speed back
+    pcall(physics.setCarVelocity, 0, keepVel)
+    keepVel = nil
+    quietUntil = simTime + 0.5  -- that jump in speed is not a crash
+  end
   handleCommand()
   local car = ac.getCar(0)
   if not car then return end
@@ -167,7 +204,7 @@ function script.windowMain(dt)
   if lastPos then ui.text(string.format('pos  %.1f  %.1f  %.1f', lastPos.x, lastPos.y, lastPos.z)) end
   ui.text(string.format('ride height %.2f m (%s)', mem and mem[K.rideHeight] or 0, rideSource))
   if teleportMsg ~= '' then ui.text('last teleport: ' .. teleportMsg) end
-  if ui.checkbox('Repair crash damage automatically (blown tyres, bent suspension)', autoRepair) then
+  if ui.checkbox('Repair the car automatically after hard crashes and landings', autoRepair) then
     autoRepair = not autoRepair
   end
   if ui.button('Repair now') then local car = ac.getCar(0); if car then repair(car, 'by hand') end end
