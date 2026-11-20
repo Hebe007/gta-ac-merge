@@ -17,6 +17,7 @@ struct PuppetOptions {
   float steerLead = 0.06f;  // seconds to steer ahead of AC, hiding GTA's own steering smoothing (0 = off)
   bool autoReset = true;    // under the map for over a second: put the car back on its wheels right there
   float hitStrength = 1;    // how hard GTA traffic and pedestrians push your AC car (0 = not at all)
+  float hitSideways = 1.5f;  // extra for the sideways part of a hit (AC's tyres soak up sideways shoves at once)
 };
 
 class Puppet {

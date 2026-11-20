@@ -48,6 +48,7 @@ static void ScriptMain() {
   po.autoReset = iniValue("auto_reset", "1") == "1";
   po.steerLead = std::strtof(iniValue("steer_lead", "0.06").c_str(), nullptr);
   po.hitStrength = std::strtof(iniValue("hit_strength", "1").c_str(), nullptr);
+  po.hitSideways = std::strtof(iniValue("hit_sideways", "1.5").c_str(), nullptr);
   Puppet puppet(game, iniValue("model", "sultan"), po);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);

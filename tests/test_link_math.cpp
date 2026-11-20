@@ -137,8 +137,8 @@ TEST_CASE("steerInputValue: 0.5 centre, 0 full left, 1 full right") {
 TEST_CASE("collisionDv: into a parked car of the same weight at 20 m/s loses about 60% of the speed") {
   // we go +x at 20 m/s; GTA pushed us back (-x); the other car (same mass) now moves +x at 5 m/s
   Vec3 dv = collisionDv({20, 0, 0}, {15, 0, 0}, {5, 0, 0}, 1300, 1300, {-1, 0, 0});
-  // other before = 5 + (-5) = 0 (parked); closing 20; dv = 1.25 * 20 * 0.5 = 12.5 back
-  CHECK(dv.x == doctest::Approx(-12.5f));
+  // other before = 5 + (-5) = 0 (parked); closing 20; dv = 1.35 * 20 * 0.5 = 13.5 back
+  CHECK(dv.x == doctest::Approx(-13.5f));
   CHECK(dv.y == doctest::Approx(0));
 }
 

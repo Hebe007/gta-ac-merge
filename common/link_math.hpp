@@ -30,7 +30,7 @@ std::optional<Impulse> hitImpulse(Vec3 vCommandedGta, Vec3 vAfterGta, float dt, 
 // vBefore/vAfter: our velocity before/after GTA's physics step; vOther: the other's velocity after it;
 // away: from the other's centre to ours (used when GTA's push is too small to tell a direction).
 // restitution: 0 = the cars stay together, 1 = a perfect bounce. Returns our change of velocity, horizontal, GTA space.
-constexpr float kHitRestitution = 0.25f;
+constexpr float kHitRestitution = 0.35f;
 Vec3 collisionDv(Vec3 vBefore, Vec3 vAfter, Vec3 vOther, float myMass, float otherMass, Vec3 away,
                  float restitution = kHitRestitution);
 

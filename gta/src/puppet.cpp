@@ -123,6 +123,15 @@ void Puppet::feedHit(const LinkFrame& f, double now) {
   float size = std::sqrt(dv.x * dv.x + dv.y * dv.y);
   if (size < kHitMinDv) return;
   if (size > kHitMaxDv) dv = {dv.x * kHitMaxDv / size, dv.y * kHitMaxDv / size, 0};
+  // AC's tyres grip at once and soak up a sideways shove: give the sideways part of the hit extra
+  Vec3 fw = rotate(last_.rot, {0, 1, 0});
+  float fl = std::sqrt(fw.x * fw.x + fw.y * fw.y);
+  if (fl > 1e-3f && opt_.hitSideways != 1.f) {
+    fw = {fw.x / fl, fw.y / fl, 0};
+    float along = dv.x * fw.x + dv.y * fw.y;
+    Vec3 side = {dv.x - along * fw.x, dv.y - along * fw.y, 0};
+    dv = {along * fw.x + side.x * opt_.hitSideways, along * fw.y + side.y * opt_.hitSideways, 0};
+  }
   hitQuietUntil_ = now + 0.2;
   Impulse imp0{gtaToAc(h.point), gtaToAc({dv.x * mass, dv.y * mass, dv.z * mass})};
   const Impulse* imp = &imp0;

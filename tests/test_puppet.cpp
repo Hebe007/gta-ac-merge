@@ -492,8 +492,9 @@ TEST_CASE("a GTA car hitting ours is sent to the AC app as an impulse, scaled by
     if (strength == 0) { CHECK(hits.count == 0); continue; }
     REQUIRE(hits.count == 1);
     float m = shm.massKg > 100 ? shm.massKg : 1300;
-    // closing 10 m/s, same mass, restitution 0.25: we lose 1.25 * 10 / 2 = 6.25 m/s
-    Vec3 want = gtaToAc({-6.25f * m * strength, 0, 0});
+    // closing 10 m/s, same mass, restitution 0.35: we lose 1.35 * 10 / 2 = 6.75 m/s; the car faces north, so
+    // this hit from the east is sideways: x 1.5
+    Vec3 want = gtaToAc({-6.75f * 1.5f * m * strength, 0, 0});
     CHECK(hits.impulse[0] == doctest::Approx(want.x));
     CHECK(hits.impulse[1] == doctest::Approx(want.y));
     CHECK(hits.impulse[2] == doctest::Approx(want.z));

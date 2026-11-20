@@ -221,7 +221,8 @@ bool ShvGame::takeHit(int v, Hit& out) {
   out.vOther = {vo.x, vo.y, vo.z};
   out.point = {(c.x + o.x) / 2, (c.y + o.y) / 2, (c.z + o.z) / 2};
   out.away = {c.x - o.x, c.y - o.y, c.z - o.z};
-  out.otherMass = nat::isEntityAPed(other) ? 80.f : vehicleClassMass(nat::getVehicleClass(other));
+  // A car's tyres and brakes resist being shoved, so in a short hit it acts heavier than it is.
+  out.otherMass = nat::isEntityAPed(other) ? 120.f : 1.5f * vehicleClassMass(nat::getVehicleClass(other));
   return true;
 }
 
