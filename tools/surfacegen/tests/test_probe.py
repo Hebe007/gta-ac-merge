@@ -71,3 +71,17 @@ def test_probe_radius_finds_neighbouring_pieces(capsys):
     probe.report(b.soup(), 1, 1, radius=30, check_filters=False)
     out = capsys.readouterr().out
     assert "next_door@1" in out and "closest" in out
+
+
+def test_probe_says_what_ac_makes_of_each_surface_and_skips_far_files(capsys):
+    b = bulk._Builder()
+    b.add("deck_0.ybn.xml", [Tri((0, 0, 30), (20, 0, 30), (0, 20, 30), "TARMAC")])          # faces up
+    b.add("under_0.ybn.xml", [Tri((0, 0, 25), (0, 20, 25), (20, 0, 25), "TARMAC")])         # faces down
+    b.add("obj:far_prop", [Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "TARMAC"),
+                            Tri((900, 900, 0), (901, 900, 0), (900, 901, 0), "TARMAC")])  # spans the map, far here
+    s = b.soup()
+    keys = bulk.classify(s, {"TARMAC": "ROAD"}, 0.4)
+    probe.report(s, 5, 5, radius=3, check_filters=False, keys=keys)
+    out = capsys.readouterr().out
+    assert "drivable ROAD" in out and "faces DOWN" in out
+    assert "obj:far_prop" not in out and "2 collision file(s)" in out

@@ -314,8 +314,8 @@ def _build_from_soup(a, soup) -> None:
         from .probe import report
         for spot in a.probe:
             parts = [float(v) for v in spot.split(",")]
-            report(soup.subset(keys != bulk.KEYS.index("NONE")), parts[0], parts[1], radius=a.probe_radius,
-                   check_filters=False, z=parts[2] if len(parts) > 2 else None)
+            report(soup, parts[0], parts[1], radius=a.probe_radius, check_filters=False,
+                   z=parts[2] if len(parts) > 2 else None, keys=keys)
     meshes = bulk.build_meshes(soup, keys, a.bbox)
     if len(meshes) == 1:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")

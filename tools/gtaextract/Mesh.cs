@@ -14,6 +14,15 @@ namespace GtaExtract
 
         public int Count => Mats.Count;
 
+        /// <summary>Undo everything added after Count was `tris` and Verts.Count was `verts`.</summary>
+        public void Truncate(int tris, int verts)
+        {
+            for (int i = verts; i < Verts.Count; i++) index.Remove(Verts[i]);
+            Verts.RemoveRange(verts, Verts.Count - verts);
+            Tris.RemoveRange(tris * 3, Tris.Count - tris * 3);
+            Mats.RemoveRange(tris, Mats.Count - tris);
+        }
+
         public int Vert(Vector3 v)
         {
             if (!index.TryGetValue(v, out int i)) { i = Verts.Count; Verts.Add(v); index[v] = i; }

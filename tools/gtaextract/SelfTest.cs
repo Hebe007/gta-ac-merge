@@ -1,4 +1,5 @@
 using System;
+using CodeWalker.GameFiles;
 using SharpDX;
 
 namespace GtaExtract
@@ -24,6 +25,25 @@ namespace GtaExtract
             var aabb = new Mesh();
             aabb.AabbBox(new Vector3(-1, -2, 0), new Vector3(1, 2, 1), Matrix.Translation(10, 0, 0), 0);
             Check(aabb.Count == 12 && Math.Abs(aabb.Verts[0].X - 9) < 1e-5, "box primitive placed by its transform");
+
+            var cut = new Mesh();
+            cut.Tri(new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0), 0);
+            cut.Tri(new Vector3(5, 0, 0), new Vector3(6, 0, 0), new Vector3(5, 1, 0), 0);
+            cut.Truncate(1, 3);
+            cut.Tri(new Vector3(5, 0, 0), new Vector3(6, 0, 0), new Vector3(5, 1, 0), 0);
+            Check(cut.Count == 2 && cut.Verts.Count == 6, "truncate removes triangles and their new corners");
+
+            BoundCompositeChildrenFlags F(EBoundCompositeFlags a, EBoundCompositeFlags b) =>
+                new BoundCompositeChildrenFlags { Flags1 = a, Flags2 = b };
+            Check(BoundsToMesh.NotForCars(F(0, 0)) == null, "part without flags is kept");
+            Check(BoundsToMesh.NotForCars(F(EBoundCompositeFlags.MAP_WEAPON | EBoundCompositeFlags.MAP_VEHICLE,
+                EBoundCompositeFlags.VEHICLE_BVH)) == null, "map part for vehicles is kept");
+            Check(BoundsToMesh.NotForCars(F(EBoundCompositeFlags.MAP_WEAPON, EBoundCompositeFlags.PROJECTILE)) != null,
+                "bullet-only map part is left out");
+            Check(BoundsToMesh.NotForCars(F(EBoundCompositeFlags.FOLIAGE, EBoundCompositeFlags.VEHICLE_BVH)) != null,
+                "foliage is left out");
+            Check(BoundsToMesh.NotForCars(F(EBoundCompositeFlags.OBJECT, EBoundCompositeFlags.VEHICLE_NOT_BVH)) == null,
+                "object part that vehicles hit is kept");
 
             using (var w = new GtacWriter(outPath))
             {

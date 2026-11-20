@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -18,8 +19,9 @@ def _load_any(path: Path) -> bulk.Soup:
         return bulk.Soup(z["verts"], z["tris"], z["mat"], z["fileid"], meta["names"], meta["files"])
 
 
-def surfaces_at(s: bulk.Soup, x: float, y: float) -> list[tuple[float, str, str]]:
-    """Every surface exactly under/over GTA (x, y): (height, material, file), highest first."""
+def surfaces_at(s: bulk.Soup, x: float, y: float, keys: np.ndarray | None = None) -> list[tuple]:
+    """Every surface exactly under/over GTA (x, y): (height, material, file, what AC gets), highest first.
+    With keys (the AC surface per triangle), says what the track turns it into."""
     v = s.verts[s.tris].astype(np.float64)
     hit = ((v[:, :, 0].min(1) <= x) & (v[:, :, 0].max(1) >= x) & (v[:, :, 1].min(1) <= y) & (v[:, :, 1].max(1) >= y))
     idx = np.nonzero(hit)[0]
@@ -33,38 +35,58 @@ def surfaces_at(s: bulk.Soup, x: float, y: float) -> list[tuple[float, str, str]
         l2 = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / d
         if min(l1, l2, 1 - l1 - l2) < 0:
             continue
-        out.append((l1 * z1 + l2 * z2 + (1 - l1 - l2) * z3, s.names[s.mat[i]], s.files[s.file[i]]))
+        out.append((l1 * z1 + l2 * z2 + (1 - l1 - l2) * z3, s.names[s.mat[i]], s.files[s.file[i]],
+                    _ac_result(v[i], None if keys is None else int(keys[i]))))
     return sorted(out, reverse=True)
 
 
+def _ac_result(t: np.ndarray, key: int | None) -> str:
+    """What the generated track makes of one triangle: drivable surface, or wall and why."""
+    if key is None:
+        return ""
+    n = np.cross(t[1] - t[0], t[2] - t[0])
+    length = float(np.linalg.norm(n)) or 1.0
+    if bulk.KEYS[key] == "NONE":
+        return "left out (water)"
+    if n[2] < -math.cos(math.radians(bulk.WALL_SLOPE_DEG)) * length:
+        return "WALL: faces DOWN (a ceiling/underside, the car falls through it from above)"
+    if bulk.KEYS[key] == "WALL":
+        return "WALL (steep)"
+    return f"drivable {bulk.KEYS[key]}"
+
+
 def report(s: bulk.Soup, x: float, y: float, radius: float = 8.0, check_filters: bool = True,
-           z: float | None = None) -> None:
-    """Print the collision files covering GTA (x, y) and the surfaces there."""
+           z: float | None = None, keys: np.ndarray | None = None) -> None:
+    """Print the collision files with triangles within the radius of GTA (x, y), and the surfaces exactly there.
+    keys: AC surface per triangle of s, to show what the track turns each surface into."""
     lo, hi = bulk.file_boxes(s)
     interiors = set(bulk.interior_files(s)) if check_filters else set()
     # every file whose area reaches within the radius (not only files whose box contains the spot)
     cover = np.nonzero((lo[:, 0] - radius <= x) & (hi[:, 0] + radius >= x)
                        & (lo[:, 1] - radius <= y) & (hi[:, 1] + radius >= y))[0]
-    where = f"at GTA {x:.1f}, {y:.1f}" + (f" (car was at z {z:.1f})" if z is not None else "")
-    print(f"{where}: {len(cover)} collision file(s) within {radius:.0f} m")
-    s = s.subset(np.isin(s.file, cover))
-    hits = surfaces_at(s, x, y)
-    if hits:
-        print("  surfaces exactly at this spot (height, material, file):")
-        for hz, mat, fname in hits[:10]:
-            mark = "   <- the car fell from about here" if z is not None and abs(hz - z) < 8 and hz > z else ""
-            print(f"      z {hz:7.2f}  {mat:24s} {fname}{mark}")
-    else:
-        print("  NO surface exactly at this spot: a hole in the generated track")
+    sel = np.isin(s.file, cover)
+    s = s.subset(sel)
+    if keys is not None:
+        keys = keys[sel]
     v = s.verts[s.tris]
     r = radius
     near = ((v[:, :, 0].min(1) - r <= x) & (v[:, :, 0].max(1) + r >= x)
             & (v[:, :, 1].min(1) - r <= y) & (v[:, :, 1].max(1) + r >= y))
+    # placed objects ("obj:name") span the whole map as one entry: only files with triangles near count
+    cover = [f for f in cover if near[s.file == f].any()]
+    where = f"at GTA {x:.1f}, {y:.1f}" + (f" (car was at z {z:.1f})" if z is not None else "")
+    print(f"{where}: {len(cover)} collision file(s) within {radius:.0f} m")
+    hits = surfaces_at(s, x, y, keys)
+    if hits:
+        print("  surfaces exactly at this spot (height, material, file, what AC gets):")
+        for hz, mat, fname, ac in hits[:10]:
+            mark = "   <- the car fell from about here" if z is not None and abs(hz - z) < 8 and hz > z else ""
+            print(f"      z {hz:7.2f}  {mat:20s} {fname:28s} {ac}{mark}")
+    else:
+        print("  NO surface exactly at this spot: a hole in the generated track")
     inside_map = bulk.in_bounds(s, bulk.GTA_MAP_BOUNDS, -20, 1500)
     for f in cover:
         mine = near & (s.file == f)
-        if not mine.any() and not ((lo[f, 0] <= x <= hi[f, 0]) and (lo[f, 1] <= y <= hi[f, 1])):
-            continue  # nothing of it within the radius, and its box doesn't contain the spot
         notes = []
         if f in interiors:
             notes.append("LEFT OUT as interior")
