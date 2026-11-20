@@ -58,12 +58,13 @@ struct FakeGame : Game {
 };
 
 static LinkState shm;
+static float acSpeed = 88;
 static void acWrite(Vec3 posAc, float rideHeight = 0, float steerDeg = 0, float lockDeg = 0) {
   LinkState s{};
   s.magic = LINK_MAGIC; s.version = LINK_VERSION;
   s.pos[0] = posAc.x; s.pos[1] = posAc.y; s.pos[2] = posAc.z;
   s.fwd[2] = -1; s.up[1] = 1;
-  s.speedKmh = 88; s.gear = 4; s.rpm = 4200;
+  s.speedKmh = acSpeed; s.gear = 4; s.rpm = 4200;
   s.rideHeight = rideHeight;
   s.steerDeg = steerDeg;
   s.steerLockDeg = lockDeg;
@@ -451,4 +452,25 @@ TEST_CASE("steer_lead feeds GTA where the steering will be, to hide GTA's smooth
   CHECK(g.steer == doctest::Approx(-0.3f).epsilon(0.02));
   acWrite({0, 30, 0}, 0, 45, 450); p.tick(1.10, &shm);  // holding still: no lead
   CHECK(g.steer == doctest::Approx(-0.1f).epsilon(0.02));
+}
+
+TEST_CASE("sunk into the road and not moving for 2 s resets onto the road (unless auto_reset is off)") {
+  for (int autoReset = 0; autoReset < 2; autoReset++) {
+    shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350", {.autoReset = autoReset == 1});
+    g.ground = 30; acSpeed = 0;
+    acWrite({0, 29.6f, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);  // car centre 0.4 m under GTA's road
+    for (int i = 1; i <= 160; i++) { acWrite({0, 29.6f, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
+    CHECK(cmd.teleportId == (autoReset ? 1u : 0u));
+    if (autoReset) CHECK(cmd.pos[1] == doctest::Approx(31));  // on top of the road, + 1 m
+    acSpeed = 88;
+  }
+}
+
+TEST_CASE("driving normally on the road is not 'sunk'") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.ground = 30; acSpeed = 0;
+  acWrite({0, 30.4f, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);
+  for (int i = 1; i <= 200; i++) { acWrite({0, 30.4f, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
+  CHECK(cmd.teleportId == 0u);
+  acSpeed = 88;
 }

@@ -19,7 +19,8 @@ local lastTeleportId = cmd and cmd[C.teleportId] or 0  -- don't act on a request
 local teleportStatus, teleportMsg = 0, ''
 
 local function teleport(pos, fwd)
-  local ok, err = pcall(physics.setCarPosition, 0, pos, fwd)
+  -- setCarPosition's direction is the car's BACK (CSP's own debug app passes -cameraLook): send it reversed
+  local ok, err = pcall(physics.setCarPosition, 0, pos, -fwd)
   teleportMsg = ok and 'moved' or ('teleport refused: ' .. tostring(err))
   return ok
 end

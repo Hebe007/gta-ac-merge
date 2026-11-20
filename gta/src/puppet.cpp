@@ -58,6 +58,18 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         if (!off) offSince_ = -1;
         else if (offSince_ < 0) offSince_ = now;
         else if (opt_.autoReset && now - offSince_ > 1.0 && now - lastReset_ > 2.0) resetHere(now, true);
+        // Sunk into the road (after a big landing or a crash) and not moving: GTA's ground is above the car's centre.
+        bool sunk = false;
+        float sz;
+        if (!off && f.speedKmh < 10.f && g_.groundZ({last_.pos.x, last_.pos.y, last_.pos.z + 1.f}, sz))
+          sunk = sz > last_.pos.z + 0.15f && sz <= last_.pos.z + 1.f;
+        if (!sunk) sunkSince_ = -1;
+        else if (sunkSince_ < 0) sunkSince_ = now;
+        else if (opt_.autoReset && now - sunkSince_ > 2.0 && now - lastReset_ > 2.0) {
+          resetHere(now, false);
+          say("Stuck in the ground - put back on the road here", now);
+          sunkSince_ = -1;
+        }
         if (g_.resetKeyPressed()) resetHere(now, off);
         if (showDiag_) {
           char d[160];
@@ -99,7 +111,7 @@ void Puppet::resetHere(double now, bool off) {
   Vec3 p = last_.pos;
   float gz = p.z;
   bool found = off ? g_.groundZ({p.x, p.y, p.z + 50.f}, gz)  // fell through: the ground is above us
-                   : g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f;
+                   : g_.groundZ({p.x, p.y, p.z + 1.5f}, gz) && gz <= p.z + 1.5f && gz > p.z - 3.f;  // also sunk in
   if (!found) gz = p.z;
   Vec3 fwd = rotate(last_.rot, {0, 1, 0});
   fwd.z = 0;  // level, wheels down

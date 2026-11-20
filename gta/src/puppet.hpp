@@ -47,7 +47,7 @@ class Puppet {
   float lift_ = 0;
   bool showDiag_ = false;
   bool wasOffMap_ = false;
-  double offSince_ = -1, lastReset_ = -10;
+  double offSince_ = -1, lastReset_ = -10, sunkSince_ = -1;
   float prevBias_ = 0;
   double prevBiasAt_ = -1;
   volatile LinkCommand* cmd_ = nullptr;
