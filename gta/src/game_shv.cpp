@@ -159,7 +159,10 @@ std::string ShvGame::diagnostics(int v) {
   std::snprintf(b, sizeof b, "GTA speed %.0f km/h  engine %s  |  frozen %d  engine_audio %s  gta_damage %d",
                 nat::getEntitySpeed(v) * 3.6f, nat::getIsVehicleEngineRunning(v) ? "running" : "OFF", opt_.frozen ? 1 : 0,
                 opt_.engineAudio.c_str(), opt_.gtaDamage ? 1 : 0);
-  return std::string(b) + "~n~settings from: " + opt_.iniPath + (opt_.iniFound ? "" : "   (FILE NOT FOUND - using defaults)");
+  std::string path = opt_.iniPath;  // GTA's text drops everything after a backslash: show / instead
+  for (char& c : path) if (c == '\\') c = '/';
+  if (path.size() > 60) path = "..." + path.substr(path.size() - 57);  // GTA text pieces are limited in length
+  return std::string(b) + "~n~settings from: " + path + (opt_.iniFound ? "  (found)" : "  (FILE NOT FOUND - using defaults)");
 }
 
 void ShvGame::logHole(Vec3 p) {
