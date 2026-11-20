@@ -156,3 +156,12 @@ def test_bulk_downward_faces_become_barriers_steep_ones_keep_their_key():
     keys = bulk.classify(s, load_table(), 0.35)
     m = bulk.build_meshes(s, keys)
     assert len(m["ROAD"]) == 2 and len(m["WALL"]) == 1
+
+
+def test_ramps_only_for_road_and_kerb_surfaces():
+    kerb = Tri((0, 0, 0), (1, 0, 0), (0, 0, 0.15), "CONCRETE")
+    rock = Tri((5, 0, 0), (6, 0, 0), (5, 0, 0.15), "ROCK")  # small step in terrain: no ramp
+    s = soup_of([kerb, rock])
+    keys = bulk.classify(s, load_table(), 0.35)
+    _, _, added = bulk.ramp_kerbs(s, keys, 0.35, 2.5)
+    assert added == 1

@@ -441,7 +441,8 @@ def ramp_kerbs(s: Soup, keys: np.ndarray, step_height: float, ratio: float) -> t
     steep = np.abs(n[:, 2]) < (math.cos(math.radians(WALL_SLOPE_DEG)) - 1e-9) * np.maximum(length, 1e-12)
     zmin, zmax = v[:, :, 2].min(1), v[:, :, 2].max(1)
     height = zmax - zmin
-    pick = steep & (length > 0) & (height > 0.02) & (height < step_height) & (keys != WALL) & (keys != KEYS.index("NONE"))
+    roadlike = (keys == KEYS.index("ROAD")) | (keys == KEYS.index("KERB"))  # kerbs and steps, not rocks or terrain
+    pick = steep & (length > 0) & (height > 0.02) & (height < step_height) & roadlike
     if not pick.any():
         return s, keys, 0
     vp, nh, hp = v[pick], n[pick, :2], height[pick]
