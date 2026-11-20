@@ -52,8 +52,12 @@ def test_csharp_writer_round_trip(tmp_path):
 
 def test_cli_builds_a_track_from_gtac(tmp_path):
     p = tmp_path / "c.gtac"
-    write_gtac(p, [(0, 0, 30), (10, 0, 30), (0, 10, 30), (100, 0, 30), (110, 0, 30), (100, 10, 30)],
-               [(0, 1, 2), (3, 4, 5)], [0, 0], [0, 1], ["TARMAC"], ["dt1_rd1_0.ybn.xml", "obj:freeway_piece"])
+    # plus an unplaced interior around 0,0,0, which is left out and listed next to the .gtac
+    write_gtac(p, [(0, 0, 30), (10, 0, 30), (0, 10, 30), (100, 0, 30), (110, 0, 30), (100, 10, 30),
+                   (0, 0, 0), (5, 0, 0), (0, 5, 0)],
+               [(0, 1, 2), (3, 4, 5), (6, 7, 8)], [0, 0, 0], [0, 1, 2], ["TARMAC"],
+               ["dt1_rd1_0.ybn.xml", "obj:freeway_piece", "v_some_room.ybn.xml"])
     cli.main(["--collision", str(p), "--out", str(tmp_path / "gta_ls"), "--layout", "t", "--start", "2,2,31,0"])
     m, _ = read_kn5(tmp_path / "gta_ls" / "gta_ls_t.kn5")
     assert sum(len(x.indices) for x in m.values()) == 6
+    assert "v_some_room" in (tmp_path / "unplaced_interiors.txt").read_text()

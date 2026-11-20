@@ -257,7 +257,7 @@ def _build_from_soup(a, soup) -> None:
         unplaced = [soup.files[i] for i in bad
                     if soup.files[i].lower().removesuffix(".xml").removesuffix(".ybn") not in placed_names]
         if unplaced:
-            out = a.xml_dir.parent / "unplaced_interiors.txt"
+            out = (a.collision or a.xml_dir).parent / "unplaced_interiors.txt"
             out.write_text("\n".join(sorted(unplaced)) + "\n")
             logging.info("%d interiors have collision but no placement in the map files (listed in %s): %s%s",
                          len(unplaced), out, ", ".join(sorted(unplaced)[:12]), " ..." if len(unplaced) > 12 else "")

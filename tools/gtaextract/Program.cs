@@ -40,7 +40,10 @@ namespace GtaExtract
             cache.LoadPeds = false;
             cache.LoadAudio = false;
             cache.Init(s => { if (s.StartsWith("Loading") || s.StartsWith("Scan")) Log(s); }, e => Log("CodeWalker: " + e));
-            Log($"scanned in {sw.Elapsed.TotalSeconds:0}s: {cache.YmapDict.Count} map files, {cache.YbnDict.Count} collision files");
+            BoundsMaterialTypes.Init(cache);  // material names (TARMAC, GRASS, ...) from materials.dat
+            Log($"scanned in {sw.Elapsed.TotalSeconds:0}s: {cache.YmapDict.Count} map files, {cache.YbnDict.Count} collision files, " +
+                $"{BoundsMaterialTypes.Materials?.Count ?? 0} materials");
+            if ((BoundsMaterialTypes.Materials?.Count ?? 0) == 0) Log("WARNING: materials.dat not loaded - every surface will become road");
 
             using (var w = new GtacWriter(outPath))
             {
