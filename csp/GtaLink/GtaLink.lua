@@ -5,6 +5,9 @@ local L = require('link_layout')
 local PLACES = require('places')
 local ITEMS, K = L.items(L.LINK_STATE)
 local CMD_ITEMS, C = L.items(L.LINK_CMD)
+local HIT_ITEMS, H = L.items(L.HIT_BLOCK)
+local okHits, hits = pcall(ac.writeMemoryMappedFile, L.HITS_NAME, HIT_ITEMS)
+if not okHits then hits = nil end
 local okCmd, cmd = pcall(ac.writeMemoryMappedFile, L.CMD_NAME, CMD_ITEMS)
 if not okCmd then cmd = nil end
 local ok, mem = pcall(ac.writeMemoryMappedFile, L.STATE_NAME, ITEMS)
@@ -196,6 +199,36 @@ local function watchDamage(car, dt)
   end
 end
 
+-- GTA traffic and pedestrians hitting the GTA car: the GTA .asi measures how much each hit changed the car's
+-- velocity and sends it as an impulse (hits block); here it becomes the same change of the AC car's velocity.
+local hitsSeen = hits and hits[H.count] or 0  -- don't replay hits from before AC started
+local hitsApplied, hitMsg = 0, ''
+
+local function applyHits(car)
+  if not hits then return end
+  local seq = hits[H.seq]
+  if seq % 2 == 1 then return end  -- GTA is writing
+  local count = hits[H.count]
+  if count < hitsSeen then hitsSeen = count end  -- GTA restarted
+  if count - hitsSeen > L.HIT_RING then hitsSeen = count - L.HIT_RING end
+  if count == hitsSeen then return end
+  local mass = (car.mass and car.mass > 100) and car.mass or 1300
+  local dx, dy, dz = 0, 0, 0
+  for i = hitsSeen, count - 1 do
+    local s = (i % L.HIT_RING) * 3
+    dx = dx + hits[H.impulse][s] / mass
+    dy = dy + hits[H.impulse][s + 1] / mass
+    dz = dz + hits[H.impulse][s + 2] / mass
+  end
+  if hits[H.seq] ~= seq then return end  -- changed while reading: next frame
+  hitsApplied = hitsApplied + (count - hitsSeen)
+  hitsSeen = count
+  local v = car.velocity
+  pcall(physics.setCarVelocity, 0, vec3(v.x + dx, v.y + dy, v.z + dz))
+  quietUntil = simTime + 0.3  -- our own change of speed is not a crash for the wheel watch
+  hitMsg = string.format('last GTA hit: %.1f m/s', math.sqrt(dx * dx + dy * dy + dz * dz))
+end
+
 function script.update(dt)
   if not mem then return end
   if keepVel then  -- the frame after a reset in place or a repair: give the car its speed back
@@ -207,6 +240,7 @@ function script.update(dt)
   local car = ac.getCar(0)
   if not car then return end
   watchDamage(car, dt)
+  applyHits(car)
 
   local p = car.position
   if lastPos and p:distance(lastPos) > TELEPORT_METERS then resets = resets + 1 end  -- reset / restart / teleport
@@ -253,6 +287,7 @@ function script.windowMain(dt)
   end
   if ui.button('Repair now') then local car = ac.getCar(0); if car then repair(car, 'by hand') end end
   ui.text(string.format('repairs: %d   %s', repairs, repairMsg))
+  ui.text(string.format('GTA hits: %d   %s%s', hitsApplied, hitMsg, hits and '' or '   (hits memory failed)'))
   ui.separator()
   ui.text('Teleport to:')
   for _, place in ipairs(PLACES) do

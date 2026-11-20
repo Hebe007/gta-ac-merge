@@ -44,16 +44,13 @@ M.LINK_CMD = [[
   float fwd[3];
 ]]
 
-M.HIT_ITEM = [[
-  float point[3];
-  float impulse[3];
-]]
-
 M.HIT_BLOCK = [[
   uint32_t seq;
   uint32_t count;
-  HitItem items[16];
+  float point[48];
+  float impulse[48];
 ]]
+M.HIT_RING = 16
 
 -- Builds CSP StructItems from a layout string. Returns (items, keys): `items` goes to ac.writeMemoryMappedFile,
 -- `keys[field]` is the struct key to write that field through (mem[keys.pos][0] = ...).

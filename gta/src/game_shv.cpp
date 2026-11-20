@@ -48,12 +48,14 @@ void ShvGame::setPose(int v, const Pose& p) {
     float ex = p.pos.x - c.x, ey = p.pos.y - c.y, ez = p.pos.z - c.z;
     // Touching something (barrier, pot, wall) and pushed away from where AC has the car: GTA's physics and AC's
     // disagree, and following by velocity makes the car shake against it. Hold it frozen in AC's place instead.
-    if (nat::hasEntityCollidedWithAnything(v) && ex * ex + ey * ey + ez * ez > 0.3f * 0.3f) blockedFrames_ = 30;
+    if (!dynamicHit_ && nat::hasEntityCollidedWithAnything(v) && ex * ex + ey * ey + ez * ez > 0.3f * 0.3f)
+      blockedFrames_ = 30;
     if (blockedFrames_ > 0) {
       blockedFrames_--;
       if (!heldFrozen_) { nat::freezeEntityPosition(v, TRUE); heldFrozen_ = true; }
       nat::setEntityCoordsNoOffset(v, p.pos.x, p.pos.y, p.pos.z);
       nat::setEntityQuaternion(v, p.rot.x, p.rot.y, p.rot.z, p.rot.w);
+      haveCmd_ = false;  // frozen: GTA's velocity says nothing about hits
       return;
     }
     if (heldFrozen_) { nat::freezeEntityPosition(v, FALSE); heldFrozen_ = false; }
@@ -64,6 +66,8 @@ void ShvGame::setPose(int v, const Pose& p) {
     Vec3 fwd = rotate(p.rot, {0, 1, 0});
     nat::setVehicleForwardSpeed(v, p.vel.x * fwd.x + p.vel.y * fwd.y + p.vel.z * fwd.z);
     nat::setEntityVelocity(v, f.vel.x, f.vel.y, f.vel.z);
+    cmdVel_ = f.vel;
+    haveCmd_ = true;
     nat::setEntityAngularVelocity(v, p.angVel.x, p.angVel.y, p.angVel.z);
   }
   if (!opt_.gtaDamage && ++repairCountdown_ >= 60) {  // undo anything that slipped through, about once a second
@@ -151,6 +155,7 @@ void ShvGame::release(int v) {
   nat::freezeEntityPosition(v, FALSE);
   heldFrozen_ = false;
   blockedFrames_ = 0;
+  haveCmd_ = false;
   nat::setEntityInvincible(v, FALSE);
   nat::setEntityCanBeDamaged(v, TRUE);
   nat::setVehicleCanBeVisiblyDamaged(v, TRUE);
@@ -185,6 +190,30 @@ void ShvGame::logHole(Vec3 p) {
     std::fprintf(f, "%.1f,%.1f,%.1f\n", p.x, p.y, p.z);
     std::fclose(f);
   }
+}
+
+bool ShvGame::takeHit(int v, Hit& out) {
+  dynamicHit_ = false;
+  if (opt_.frozen || !haveCmd_ || !nat::hasEntityCollidedWithAnything(v)) return false;
+  // What did we touch? GTA's "last entity hit" first; if that isn't a car or person, a car touching us.
+  Entity other = nat::getLastEntityHitByEntity(v);
+  bool dynamic = other && other != v && nat::doesEntityExist(other) &&
+                 (nat::isEntityAVehicle(other) || nat::isEntityAPed(other));
+  if (!dynamic) {
+    Vector3 c = nat::getEntityCoords(v);
+    Vehicle near = nat::getClosestVehicle(c.x, c.y, c.z, 8.f, 0, 70);
+    other = near;
+    dynamic = near && near != v && nat::isEntityTouchingEntity(v, near);
+  }
+  if (!dynamic) return false;
+  dynamicHit_ = true;
+  Vector3 va = nat::getEntityVelocity(v);
+  Vector3 c = nat::getEntityCoords(v), o = nat::getEntityCoords(other);
+  out.vCommanded = cmdVel_;
+  out.vAfter = {va.x, va.y, va.z};
+  out.point = {(c.x + o.x) / 2, (c.y + o.y) / 2, (c.z + o.z) / 2};
+  out.dt = nat::getFrameTime();
+  return true;
 }
 
 void ShvGame::logStuck(const std::string& line) {

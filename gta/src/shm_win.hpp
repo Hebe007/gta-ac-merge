@@ -3,17 +3,20 @@
 #include <string>
 #include "link_protocol.h"
 
-// Writable command block for the AC app (created here if AC hasn't created it yet).
-class SharedCommand {
+// Writable block shared with the AC app (created here if AC hasn't created it yet): commands, hits.
+template <class T>
+class SharedBlock {
  public:
-  explicit SharedCommand(const std::string& name);
-  ~SharedCommand();
-  volatile LinkCommand* get() { return view_; }
+  explicit SharedBlock(const std::string& name);
+  ~SharedBlock();
+  volatile T* get() { return view_; }
 
  private:
   void* mapping_ = nullptr;
-  volatile LinkCommand* view_ = nullptr;
+  volatile T* view_ = nullptr;
 };
+using SharedCommand = SharedBlock<LinkCommand>;
+using SharedHits = SharedBlock<HitBlock>;
 
 class SharedLink {
  public:

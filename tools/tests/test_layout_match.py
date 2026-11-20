@@ -31,7 +31,6 @@ def test_command_layout_matches():
 def test_hit_block_layout_matches():
     h = (ROOT / "common/link_protocol.h").read_text()
     lua = (ROOT / "csp/GtaLink/link_layout.lua").read_text()
-    assert lua_layout(lua, "HIT_ITEM") == c_struct_fields(h, "HitItem")
     assert lua_layout(lua, "HIT_BLOCK") == c_struct_fields(h, "HitBlock")
 
 

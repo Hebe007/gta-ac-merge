@@ -39,6 +39,7 @@ class ShvGame : public Game {
   std::string diagnostics(int vehicle) override;
   void logHole(Vec3 gtaPos) override;
   void logStuck(const std::string& line) override;
+  bool takeHit(int vehicle, Hit& out) override;
   std::string holesFile;  // set by main: next to the .asi
   std::string stuckFile;
 
@@ -50,4 +51,7 @@ class ShvGame : public Game {
   int repairCountdown_ = 0;
   int blockedFrames_ = 0;   // > 0: GTA is pushing the car back from something; place it directly, frozen
   bool heldFrozen_ = false;
+  bool dynamicHit_ = false;  // this frame's contact is a GTA car or pedestrian (handled as a hit, not frozen)
+  bool haveCmd_ = false;
+  Vec3 cmdVel_{};            // velocity setPose gave the car last frame
 };

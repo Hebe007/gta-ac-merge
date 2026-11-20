@@ -37,5 +37,9 @@ class Game {
   virtual std::string diagnostics(int vehicle) = 0;
   // Remember a spot where the car fell through the generated track (appended to gta_link_holes.txt).
   virtual void logHole(Vec3 gtaPos) = 0;
-  virtual void logStuck(const std::string& line) = 0;  // one line per F9 press, to see why the car got stuck
+  virtual void logStuck(const std::string& line) = 0;
+  // A GTA car or pedestrian hit our car since the last setPose: the velocity we gave it, the velocity GTA's
+  // physics left it with, roughly where they touched, and the frame time (all GTA space). False if no such hit.
+  struct Hit { Vec3 vCommanded, vAfter, point; float dt; };
+  virtual bool takeHit(int vehicle, Hit& out) = 0;  // one line per F9 press, to see why the car got stuck
 };

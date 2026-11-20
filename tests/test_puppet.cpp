@@ -56,6 +56,9 @@ struct FakeGame : Game {
   void logHole(Vec3 p) override { holes.push_back(p); }
   std::vector<std::string> stuck;
   void logStuck(const std::string& l) override { stuck.push_back(l); }
+  bool hitPending = false;
+  Hit hit{};
+  bool takeHit(int, Hit& out) override { if (!hitPending) return false; hitPending = false; out = hit; return true; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -475,4 +478,36 @@ TEST_CASE("driving normally on the road is not 'sunk'") {
   for (int i = 1; i <= 200; i++) { acWrite({0, 30.4f, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
   CHECK(cmd.teleportId == 0u);
   acSpeed = 88;
+}
+
+TEST_CASE("a GTA car hitting ours is sent to the AC app as an impulse, scaled by hit_strength") {
+  for (float strength : {1.f, 0.5f, 0.f}) {
+    shm = {}; HitBlock hits{}; FakeGame g; Puppet p(g, "zr350", {.hitStrength = strength});
+    acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", nullptr, &hits);
+    acWrite({0, 30, 0}); p.tick(2.5, &shm, "", nullptr, &hits);  // well after linking
+    // GTA had our car going 10 m/s east; a car hit it and GTA's physics left it at 6 m/s east, 2 m/s north
+    g.hit = {{10, 0, 0}, {6, 2, 0}, {100, 200, 30}, 1.f / 60};
+    g.hitPending = true;
+    acWrite({0, 30, 0}); p.tick(2.516, &shm, "", nullptr, &hits);
+    if (strength == 0) { CHECK(hits.count == 0); continue; }
+    REQUIRE(hits.count == 1);
+    float m = shm.massKg > 100 ? shm.massKg : 1300;
+    Vec3 want = gtaToAc({-4 * m * strength, 2 * m * strength, 0});
+    CHECK(hits.impulse[0] == doctest::Approx(want.x));
+    CHECK(hits.impulse[1] == doctest::Approx(want.y));
+    CHECK(hits.impulse[2] == doctest::Approx(want.z));
+    Vec3 at = gtaToAc({100, 200, 30});
+    CHECK(hits.point[0] == doctest::Approx(at.x));
+    CHECK(hits.point[2] == doctest::Approx(at.z));
+    CHECK(hits.seq % 2 == 0);
+  }
+}
+
+TEST_CASE("no hits are sent right after linking (the car jumping into place is not a hit)") {
+  shm = {}; HitBlock hits{}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", nullptr, &hits);
+  g.hit = {{10, 0, 0}, {0, 0, 0}, {0, 0, 0}, 1.f / 60};
+  g.hitPending = true;
+  acWrite({0, 30, 0}); p.tick(1.016, &shm, "", nullptr, &hits);
+  CHECK(hits.count == 0);
 }

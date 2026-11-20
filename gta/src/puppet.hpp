@@ -16,6 +16,7 @@ struct PuppetOptions {
   bool pedals = true;       // pass AC's throttle/brake to GTA (rev counter, brake lights)
   float steerLead = 0.06f;  // seconds to steer ahead of AC, hiding GTA's own steering smoothing (0 = off)
   bool autoReset = true;    // under the map for over a second: put the car back on its wheels right there
+  float hitStrength = 1;    // how hard GTA traffic and pedestrians push your AC car (0 = not at all)
 };
 
 class Puppet {
@@ -24,8 +25,10 @@ class Puppet {
   Puppet(Game& game, std::string model, PuppetOptions opt = {}) : g_(game), model_(std::move(model)), opt_(opt) {}
   // shmStatus: why the shared memory isn't open (shown when F8 can't link), empty if unknown.
   // cmd: requests to the AC app (teleport), null if unavailable.
+  // hits: where GTA traffic hits go to the AC app, null if unavailable.
   void tick(double nowSec, const volatile LinkState* raw, const std::string& shmStatus = "",
-            volatile LinkCommand* cmd = nullptr);
+            volatile LinkCommand* cmd = nullptr, volatile HitBlock* hits = nullptr);
+  int hitsSent() const { return hitsSent_; }
   bool linked() const { return veh_ != 0; }
   const std::string& message() const { return msg_; }
 
@@ -39,6 +42,7 @@ class Puppet {
   void adopt(const LinkFrame& f, double now, const std::string& why);
   void resetHere(double now, bool off);  // send the AC car upright onto GTA's ground at the current spot
   bool sendTeleport(Vec3 acPos, Vec3 acFwd);  // take over the car you're in  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
+  void feedHit(const LinkFrame& f, double now);  // GTA car/pedestrian hit our car: tell the AC app
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;
@@ -51,6 +55,9 @@ class Puppet {
   float prevBias_ = 0;
   double prevBiasAt_ = -1;
   volatile LinkCommand* cmd_ = nullptr;
+  volatile HitBlock* hits_ = nullptr;
+  double hitQuietUntil_ = 0;
+  int hitsSent_ = 0;
   bool adopted_ = false;       // the car you were in, not one we spawned
   int pendingVeh_ = 0;         // waiting for the AC app to move the AC car here
   uint32_t teleportId_ = 0;

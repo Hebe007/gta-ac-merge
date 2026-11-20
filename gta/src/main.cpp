@@ -38,6 +38,7 @@ static void ScriptMain() {
   game.stuckFile = besideAsi("gta_link_stuck.txt");
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
   SharedCommand cmd(LINK_CMD_NAME);
+  SharedHits hits(LINK_HITS_NAME);
   PuppetOptions po;
   po.heightTrim = std::strtof(iniValue("height_trim", "0").c_str(), nullptr);
   po.steerInvert = iniValue("steer_invert", "0") == "1";
@@ -46,6 +47,7 @@ static void ScriptMain() {
   po.pedals = iniValue("pedals", "1") == "1";
   po.autoReset = iniValue("auto_reset", "1") == "1";
   po.steerLead = std::strtof(iniValue("steer_lead", "0.06").c_str(), nullptr);
+  po.hitStrength = std::strtof(iniValue("hit_strength", "1").c_str(), nullptr);
   Puppet puppet(game, iniValue("model", "sultan"), po);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);
@@ -54,7 +56,7 @@ static void ScriptMain() {
     QueryPerformanceCounter(&t);
     double now = static_cast<double>(t.QuadPart) / static_cast<double>(freq.QuadPart);
     const volatile LinkState* raw = shm.get(now);
-    puppet.tick(now, raw, shm.status(), cmd.get());
+    puppet.tick(now, raw, shm.status(), cmd.get(), hits.get());
     scriptWait(0);
   }
 }

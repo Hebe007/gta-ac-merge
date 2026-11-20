@@ -50,6 +50,15 @@ inline float getEntityHeightAboveGround(Entity e) { return invoke<float>(0x1DD55
 inline BOOL setVehicleOnGroundProperly(Vehicle v) { return invoke<BOOL>(0x49733E92263139D1, v, 5.0f); }
 inline void freezeEntityPosition(Entity e, BOOL on) { invoke<Void>(0x428CA6DBD1094446, e, on); }
 inline BOOL hasEntityCollidedWithAnything(Entity e) { return invoke<BOOL>(0x8BAD02F0368D9E14, e); }
+inline Entity getLastEntityHitByEntity(Entity e) { return invoke<Entity>(0xA75EE4F689B85391, e); }
+inline Vector3 getEntityVelocity(Entity e) { return invoke<Vector3>(0x4805D2B1D8CF94A9, e); }
+inline BOOL isEntityAVehicle(Entity e) { return invoke<BOOL>(0x6AC7003FA6E5575E, e); }
+inline BOOL isEntityAPed(Entity e) { return invoke<BOOL>(0x524AC5ECEA15343E, e); }
+inline BOOL isEntityTouchingEntity(Entity a, Entity b) { return invoke<BOOL>(0x17FFC1B2BA35A494, a, b); }
+inline Vehicle getClosestVehicle(float x, float y, float z, float r, Hash model, int flags) {
+  return invoke<Vehicle>(0xF73EB622C4F1689B, x, y, z, r, model, flags);
+}
+inline float getFrameTime() { return invoke<float>(0x15C40837039FFAF7); }
 inline void setEntityInvincible(Entity e, BOOL on) { invoke<Void>(0x3882114BDE571AD4, e, on, TRUE); }
 inline void setEntityCanBeDamaged(Entity e, BOOL on) { invoke<Void>(0x1760FFA8AB074D66, e, on); }
 inline void setEntityProofsAll(Entity e) { invoke<Void>(0xFAEE099C6F890BB8, e, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE); }

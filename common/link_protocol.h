@@ -49,14 +49,13 @@ struct LinkCommand {
   float fwd[3];
 };
 
-struct HitItem {
-  float point[3];
-  float impulse[3];
-};
-
-// Written by the GTA .asi. Ring of 16; count only ever grows, item i lives at items[i % 16].
+// GTA -> AC: hits from GTA traffic and pedestrians on your car (AC space; impulse in N*s, point in world).
+// Created by the AC app, written by the GTA .asi. Ring of 16: count only ever grows, hit i lives at
+// point/impulse[(i % 16) * 3 .. + 2]. Flat arrays so CSP Lua can map it.
+constexpr uint32_t kHitRing = 16;
 struct HitBlock {
   uint32_t seq;
   uint32_t count;
-  HitItem items[16];
+  float point[48];
+  float impulse[48];
 };

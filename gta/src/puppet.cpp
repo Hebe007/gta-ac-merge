@@ -12,7 +12,8 @@ std::string gearName(int g) { return g < 0 ? "R" : g == 0 ? "N" : std::to_string
 }  // namespace
 
 void Puppet::tick(double now, const volatile LinkState* raw, const std::string& shmStatus,
-                  volatile LinkCommand* cmd) {
+                  volatile LinkCommand* cmd, volatile HitBlock* hits) {
+  hits_ = hits;
   LinkFrame f = client_.update(raw, now);
   cmd_ = cmd;
 
@@ -39,6 +40,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         Vec3 up = rotate(last_.rot, {0, 0, 1});
         last_.pos = {last_.pos.x + up.x * lift_, last_.pos.y + up.y * lift_, last_.pos.z + up.z * lift_};
         haveLast_ = true;
+        feedHit(f, now);  // before setPose: GTA's physics since last frame
         g_.setPose(veh_, last_);
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
         float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
@@ -88,8 +90,8 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         }
         if (showDiag_) {
           char d[160];
-          std::snprintf(d, sizeof d, "AC gas %.2f brake %.2f steer %.0f   pedals %d", f.gas, f.brake,
-                        f.steerDeg, opt_.pedals ? 1 : 0);
+          std::snprintf(d, sizeof d, "AC gas %.2f brake %.2f steer %.0f   pedals %d   hits sent %d%s", f.gas,
+                        f.brake, f.steerDeg, opt_.pedals ? 1 : 0, hitsSent_, hits_ ? "" : " (no hits memory)");
           g_.drawText(0.5f, 0.80f, d);
           g_.drawText(0.5f, 0.84f, g_.diagnostics(veh_));
         }
@@ -107,6 +109,25 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
   }
 
   if (now < msgUntil_) g_.drawText(0.5f, 0.05f, msg_);
+}
+
+void Puppet::feedHit(const LinkFrame& f, double now) {
+  Game::Hit h;
+  if (!g_.takeHit(veh_, h) || !hits_ || opt_.hitStrength <= 0) return;
+  float mass = f.massKg > 100.f ? f.massKg : 1300.f;
+  auto imp = hitImpulse(h.vCommanded, h.vAfter, h.dt > 0 ? h.dt : 1.f / 60, mass, h.point,
+                        now < hitQuietUntil_ ? 0.f : 10.f);
+  if (!imp) return;
+  HitBlock b;
+  for (int i = 0; i < 4 && !seqRead(hits_, b); i++) {}
+  uint32_t slot = (b.count % kHitRing) * 3;
+  b.point[slot] = imp->point.x; b.point[slot + 1] = imp->point.y; b.point[slot + 2] = imp->point.z;
+  b.impulse[slot] = imp->impulse.x * opt_.hitStrength;
+  b.impulse[slot + 1] = imp->impulse.y * opt_.hitStrength;
+  b.impulse[slot + 2] = imp->impulse.z * opt_.hitStrength;
+  b.count++;
+  seqWrite(hits_, b);
+  hitsSent_++;
 }
 
 bool Puppet::sendTeleport(Vec3 acPos, Vec3 acFwd) {
@@ -134,6 +155,7 @@ void Puppet::resetHere(double now, bool off) {
   fwd = len > 1e-3f ? Vec3{fwd.x / len, fwd.y / len, 0} : Vec3{0, 1, 0};
   if (sendTeleport(gtaToAc({p.x, p.y, gz + 1.f}), gtaToAc(fwd))) {
     lastReset_ = now;
+    hitQuietUntil_ = now + 1.0;
     say(off ? "Fell through - put back on the road here" : "Car reset here (F9)", now);
   }
 }
@@ -182,6 +204,7 @@ void Puppet::adopt(const LinkFrame& f, double now, const std::string& why) {
   last_ = f.pose;
   haveLast_ = false;  // the car is about to jump to AC's position; don't mistake that for a trainer teleport
   lift_ = opt_.heightTrim;
+  hitQuietUntil_ = now + 1.0;  // the car jumping to AC's position is not a hit
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
   if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
@@ -208,6 +231,7 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   last_ = f.pose;
   haveLast_ = true;
   lift_ = opt_.heightTrim;
+  hitQuietUntil_ = now + 1.0;  // the car jumping to AC's position is not a hit
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
   if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);

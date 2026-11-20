@@ -34,19 +34,24 @@ const volatile LinkState* SharedLink::get(double now) {
   return view_;
 }
 
-SharedCommand::SharedCommand(const std::string& name) {
-  mapping_ = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(LinkCommand), name.c_str());
+template <class T>
+SharedBlock<T>::SharedBlock(const std::string& name) {
+  mapping_ = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(T), name.c_str());
   if (!mapping_) return;
-  void* v = MapViewOfFile(mapping_, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(LinkCommand));
+  void* v = MapViewOfFile(mapping_, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(T));
   if (!v) {
     CloseHandle(mapping_);
     mapping_ = nullptr;
     return;
   }
-  view_ = static_cast<volatile LinkCommand*>(v);
+  view_ = static_cast<volatile T*>(v);
 }
 
-SharedCommand::~SharedCommand() {
-  if (view_) UnmapViewOfFile(const_cast<LinkCommand*>(view_));
+template <class T>
+SharedBlock<T>::~SharedBlock() {
+  if (view_) UnmapViewOfFile(const_cast<T*>(view_));
   if (mapping_) CloseHandle(mapping_);
 }
+
+template class SharedBlock<LinkCommand>;
+template class SharedBlock<HitBlock>;
