@@ -156,10 +156,10 @@ bool ShvGame::diagKeyPressed() {
 
 std::string ShvGame::diagnostics(int v) {
   char b[200];
-  std::snprintf(b, sizeof b, "GTA speed %.0f km/h  engine %s  |  ini: frozen %d  engine_audio %s  gta_damage %d",
+  std::snprintf(b, sizeof b, "GTA speed %.0f km/h  engine %s  |  frozen %d  engine_audio %s  gta_damage %d",
                 nat::getEntitySpeed(v) * 3.6f, nat::getIsVehicleEngineRunning(v) ? "running" : "OFF", opt_.frozen ? 1 : 0,
                 opt_.engineAudio.c_str(), opt_.gtaDamage ? 1 : 0);
-  return b;
+  return std::string(b) + "~n~settings from: " + opt_.iniPath + (opt_.iniFound ? "" : "   (FILE NOT FOUND - using defaults)");
 }
 
 void ShvGame::logHole(Vec3 p) {

@@ -29,7 +29,9 @@ static std::string iniValue(const char* key, const char* fallback) {
 static void ScriptMain() {
   ShvOptions opt;
   opt.gtaDamage = iniValue("gta_damage", "0") == "1";
-  opt.frozen = iniValue("frozen", "1") == "1";
+  opt.frozen = iniValue("frozen", "0") == "1";
+  opt.iniPath = besideAsi("gta_link.ini");
+  opt.iniFound = GetFileAttributesA(opt.iniPath.c_str()) != INVALID_FILE_ATTRIBUTES;
   opt.engineAudio = iniValue("engine_audio", "voltic");
   ShvGame game(opt);
   game.holesFile = besideAsi("gta_link_holes.txt");

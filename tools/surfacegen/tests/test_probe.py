@@ -47,3 +47,16 @@ def test_probe_file_probes_every_spot(tmp_path, capsys):
               "--start", "105,202,6,0", "--probe-file", str(holes)])
     out = capsys.readouterr().out
     assert "at GTA 111.0, 201.0" in out and "at GTA -50.0, -50.0" in out
+
+
+def test_probe_lists_surfaces_exactly_at_the_spot(capsys):
+    b = bulk._Builder()
+    b.add("ground_0.ybn.xml", [Tri((0, 0, 28), (20, 0, 28), (0, 20, 28), "CONCRETE")])
+    b.add("bridge_0.ybn.xml", [Tri((0, 0, 42), (20, 0, 42), (0, 20, 42), "TARMAC")])
+    probe.report(b.soup(), 5, 5, check_filters=False, z=36)
+    out = capsys.readouterr().out
+    assert "car was at z 36.0" in out
+    assert out.index("z   42.00") < out.index("z   28.00")
+    assert "the car fell from about here" in out
+    probe.report(b.soup(), 50, 50, check_filters=False)
+    assert "0 collision file(s)" in capsys.readouterr().out
