@@ -249,7 +249,7 @@ TEST_CASE("if GTA's ground isn't loaded at link time, keeps trying and lifts onc
 }
 
 TEST_CASE("steers the GTA car's wheels from AC's steering (right in AC = right in GTA)") {
-  shm = {}; FakeGame g; Puppet p(g, "zr350");
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerLead = 0});
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
   acWrite({0, 30, 0}, 0, 225, 450); p.tick(1.016, &shm);  // half lock to the right
   CHECK(g.steer == doctest::Approx(-0.5f));
@@ -258,14 +258,14 @@ TEST_CASE("steers the GTA car's wheels from AC's steering (right in AC = right i
 }
 
 TEST_CASE("steer_invert flips the direction; unknown lock uses 450 degrees") {
-  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerInvert = true});
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerInvert = true, .steerLead = 0});
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
   acWrite({0, 30, 0}, 0, 225, 0); p.tick(1.016, &shm);
   CHECK(g.steer == doctest::Approx(0.5f));
 }
 
 TEST_CASE("steer_scale widens or narrows the range, steer_offset moves the centre") {
-  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerScale = 0.5f, .steerOffset = 0.1f});
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerScale = 0.5f, .steerOffset = 0.1f, .steerLead = 0});
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
   acWrite({0, 30, 0}, 0, 225, 450); p.tick(1.016, &shm);  // half right
   CHECK(g.steer == doctest::Approx(-0.25f + 0.1f));
@@ -440,4 +440,15 @@ TEST_CASE("F8 in a car sends the GTA car's own heading (here: facing east), leve
   CHECK(cmd.fwd[0] == doctest::Approx(1).epsilon(0.01));  // GTA east = AC +X
   CHECK(cmd.fwd[1] == doctest::Approx(0));                // level
   CHECK(cmd.fwd[2] == doctest::Approx(0));
+}
+
+TEST_CASE("steer_lead feeds GTA where the steering will be, to hide GTA's smoothing") {
+  shm = {}; FakeGame g; Puppet p(g, "zr350", {.steerLead = 0.1f});
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm);
+  acWrite({0, 30, 0}, 0, 0, 450); p.tick(1.0, &shm);
+  acWrite({0, 30, 0}, 0, 45, 450); p.tick(1.05, &shm);  // turning right at 900 deg/s
+  // now -45/450 = -0.1, plus 0.1 s ahead at -2.0/s = -0.2 more
+  CHECK(g.steer == doctest::Approx(-0.3f).epsilon(0.02));
+  acWrite({0, 30, 0}, 0, 45, 450); p.tick(1.10, &shm);  // holding still: no lead
+  CHECK(g.steer == doctest::Approx(-0.1f).epsilon(0.02));
 }

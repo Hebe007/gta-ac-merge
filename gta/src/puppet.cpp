@@ -42,7 +42,14 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         g_.setPose(veh_, last_);
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
         float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
-        g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, bias)));
+        float ahead = bias;
+        if (prevBiasAt_ >= 0 && now > prevBiasAt_ && opt_.steerLead > 0) {
+          float rate = (bias - prevBias_) / static_cast<float>(now - prevBiasAt_);
+          ahead = bias + rate * opt_.steerLead;
+        }
+        prevBias_ = bias;
+        prevBiasAt_ = now;
+        g_.setSteer(veh_, std::fmax(-1.f, std::fmin(1.f, ahead)));
         if (opt_.pedals) g_.setPedals(veh_, f.gas, f.brake);
         bool off = offMap(last_.pos);
         if (off) g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa (spot saved to gta_link_holes.txt)");
