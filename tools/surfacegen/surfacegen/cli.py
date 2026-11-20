@@ -272,7 +272,8 @@ def _build_from_soup(a, soup) -> None:
         logging.info("map bounds: kept %d of %d triangles (dropped North Yankton, far-away sets, seabed, sky)",
                      len(soup.tris), before)
     counts = np.bincount(soup.file, minlength=len(soup.files))
-    small = [f"{soup.files[i]} ({counts[i]})" for i in np.nonzero((counts > 0) & (counts < 50))[0]]
+    small = [f"{soup.files[i]} ({counts[i]})" for i in np.nonzero((counts > 0) & (counts < 50))[0]
+             if not soup.files[i].startswith("obj:")]  # small props are small, not holes
     if small:
         logging.warning("files with almost no collision (possible holes): %s", ", ".join(small[:20]))
     logging.info("%d triangles from %d files", len(soup.tris), int((counts > 0).sum()))
