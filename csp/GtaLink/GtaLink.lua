@@ -72,11 +72,60 @@ local function rideHeight(car)
   return 0
 end
 
+-- Crash damage that AC's damage slider doesn't cover: blown tyres and bent suspension make the car pull to one side.
+-- Watch for it and repair the car where it is (fuel kept). Rear toe never changes with steering, so a change in it
+-- means a bent rear axle; front wheels are checked through suspensionDamage.
+local autoRepair, repairMsg, repairs, lastRepair = true, '', 0, -10
+local baseToe, simTime = nil, 0
+local WHEEL = { [0] = 'front left', 'front right', 'rear left', 'rear right' }
+
+local function damageFound(car)
+  local okW, why = pcall(function()
+    for i = 0, 3 do
+      local w = car.wheels[i]
+      if w.isBlown then return 'blown tyre ' .. WHEEL[i] end
+      if (w.suspensionDamage or 0) > 0.01 then
+        return string.format('suspension damage %s (%.2f)', WHEEL[i], w.suspensionDamage)
+      end
+    end
+    if baseToe then
+      for i = 2, 3 do
+        local d = (car.wheels[i].toeIn or 0) - baseToe[i]
+        if math.abs(d) > 1.0 then return string.format('bent %s (toe %+.1f deg)', WHEEL[i], d) end
+      end
+    end
+    return nil
+  end)
+  return okW and why or nil
+end
+
+local function repair(car, why)
+  local fuel = car.fuel
+  local ok, err = pcall(physics.resetCarState, 0, 1)
+  if ok and fuel then pcall(physics.setCarFuel, 0, fuel) end
+  repairs = repairs + 1
+  lastRepair = simTime
+  baseToe = nil  -- measure the straight car again
+  repairMsg = ok and ('repaired: ' .. why) or ('repair refused: ' .. tostring(err))
+end
+
+local function watchDamage(car, dt)
+  simTime = simTime + dt
+  if not baseToe and (car.speedKmh or 0) < 200 then
+    local ok, t = pcall(function() return { [2] = car.wheels[2].toeIn, [3] = car.wheels[3].toeIn } end)
+    if ok and t[2] and t[3] then baseToe = t end
+  end
+  if not autoRepair or simTime - lastRepair < 1 then return end
+  local why = damageFound(car)
+  if why then repair(car, why) end
+end
+
 function script.update(dt)
   if not mem then return end
   handleCommand()
   local car = ac.getCar(0)
   if not car then return end
+  watchDamage(car, dt)
 
   local p = car.position
   if lastPos and p:distance(lastPos) > TELEPORT_METERS then resets = resets + 1 end  -- reset / restart / teleport
@@ -118,6 +167,11 @@ function script.windowMain(dt)
   if lastPos then ui.text(string.format('pos  %.1f  %.1f  %.1f', lastPos.x, lastPos.y, lastPos.z)) end
   ui.text(string.format('ride height %.2f m (%s)', mem and mem[K.rideHeight] or 0, rideSource))
   if teleportMsg ~= '' then ui.text('last teleport: ' .. teleportMsg) end
+  if ui.checkbox('Repair crash damage automatically (blown tyres, bent suspension)', autoRepair) then
+    autoRepair = not autoRepair
+  end
+  if ui.button('Repair now') then local car = ac.getCar(0); if car then repair(car, 'by hand') end end
+  ui.text(string.format('repairs: %d   %s', repairs, repairMsg))
   ui.separator()
   ui.text('Teleport to:')
   for _, place in ipairs(PLACES) do
