@@ -65,7 +65,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
           sunk = sz > last_.pos.z + 0.15f && sz <= last_.pos.z + 1.f;
         if (!sunk) sunkSince_ = -1;
         else if (sunkSince_ < 0) sunkSince_ = now;
-        else if (opt_.autoReset && now - sunkSince_ > 2.0 && now - lastReset_ > 2.0) {
+        else if (opt_.autoReset && now - sunkSince_ > 1.0 && now - lastReset_ > 2.0) {
           resetHere(now, false);
           say("Stuck in the ground - put back on the road here", now);
           sunkSince_ = -1;

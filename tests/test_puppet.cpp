@@ -454,12 +454,12 @@ TEST_CASE("steer_lead feeds GTA where the steering will be, to hide GTA's smooth
   CHECK(g.steer == doctest::Approx(-0.1f).epsilon(0.02));
 }
 
-TEST_CASE("sunk into the road and not moving for 2 s resets onto the road (unless auto_reset is off)") {
+TEST_CASE("sunk into the road and not moving for 1 s resets onto the road (unless auto_reset is off)") {
   for (int autoReset = 0; autoReset < 2; autoReset++) {
     shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350", {.autoReset = autoReset == 1});
     g.ground = 30; acSpeed = 0;
     acWrite({0, 29.6f, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);  // car centre 0.4 m under GTA's road
-    for (int i = 1; i <= 160; i++) { acWrite({0, 29.6f, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
+    for (int i = 1; i <= 70; i++) { acWrite({0, 29.6f, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
     CHECK(cmd.teleportId == (autoReset ? 1u : 0u));
     if (autoReset) CHECK(cmd.pos[1] == doctest::Approx(31));  // on top of the road, + 1 m
     acSpeed = 88;
