@@ -37,4 +37,5 @@ class Game {
   virtual std::string diagnostics(int vehicle) = 0;
   // Remember a spot where the car fell through the generated track (appended to gta_link_holes.txt).
   virtual void logHole(Vec3 gtaPos) = 0;
+  virtual void logStuck(const std::string& line) = 0;  // one line per F9 press, to see why the car got stuck
 };

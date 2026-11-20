@@ -35,6 +35,7 @@ static void ScriptMain() {
   opt.engineAudio = iniValue("engine_audio", "voltic");
   ShvGame game(opt);
   game.holesFile = besideAsi("gta_link_holes.txt");
+  game.stuckFile = besideAsi("gta_link_stuck.txt");
   SharedLink shm(iniValue("shm_name", LINK_STATE_NAME));
   SharedCommand cmd(LINK_CMD_NAME);
   PuppetOptions po;

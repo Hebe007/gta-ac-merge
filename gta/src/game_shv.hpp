@@ -38,7 +38,9 @@ class ShvGame : public Game {
   bool resetKeyPressed() override;
   std::string diagnostics(int vehicle) override;
   void logHole(Vec3 gtaPos) override;
+  void logStuck(const std::string& line) override;
   std::string holesFile;  // set by main: next to the .asi
+  std::string stuckFile;
 
  private:
   ShvOptions opt_;

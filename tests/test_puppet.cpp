@@ -54,6 +54,8 @@ struct FakeGame : Game {
   std::string diagnostics(int) override { return "GTA speed 42 km/h"; }
   std::vector<Vec3> holes;
   void logHole(Vec3 p) override { holes.push_back(p); }
+  std::vector<std::string> stuck;
+  void logStuck(const std::string& l) override { stuck.push_back(l); }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 

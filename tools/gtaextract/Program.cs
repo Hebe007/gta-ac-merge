@@ -25,9 +25,14 @@ namespace GtaExtract
             bool fragments = args.Contains("--fragments");
             bool props = !args.Contains("--no-objects");
             bool keepDynamic = args.Contains("--keep-movable");
+            // Movable in GTA, but so heavy that a car stops dead: keep them solid. --solid adds more name starts.
+            var solid = new List<string> { "prop_barier_conc_", "prop_mp_conc_barrier", "prop_mp_barrier_02",
+                "prop_barrier_wat_", "prop_container_", "prop_contr_", "prop_conc_blocks", "prop_jersey",
+                "prop_concrete_", "prop_mb_cargo_", "prop_ind_barge_", "prop_byard_block_", "prop_jyard_block_" };
+            if (Arg(args, "--solid") is string more) solid.AddRange(more.Split(';', StringSplitOptions.RemoveEmptyEntries));
             if (gta == null || !Directory.Exists(gta))
             {
-                Console.Error.WriteLine("usage: GtaExtract --gta <GTA V folder> --out <file.gtac> [--fragments] [--no-objects] [--keep-movable] [--all-parts]");
+                Console.Error.WriteLine("usage: GtaExtract --gta <GTA V folder> --out <file.gtac> [--fragments] [--no-objects] [--keep-movable] [--solid name_start;...] [--all-parts]");
                 return 2;
             }
             bool gen9 = File.Exists(Path.Combine(gta, "GTA5_Enhanced.exe"));
@@ -77,7 +82,7 @@ namespace GtaExtract
                         if (lod != rage__eLodType.LODTYPES_DEPTH_HD && lod != rage__eLodType.LODTYPES_DEPTH_ORPHANHD) continue;
                         if ((ent._CEntityDef.flags & 4) != 0) continue;  // the map turns this object's collision off
                         entities++;
-                        if (!keepDynamic && IsMovable(cache, hash))
+                        if (!keepDynamic && IsMovable(cache, hash) && !solid.Any(Name(hash).StartsWith))
                         {
                             // GTA lets cars push these away (cones, bins, chairs, ...): a fixed wall in AC would be wrong
                             movable++;

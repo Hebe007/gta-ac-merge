@@ -173,6 +173,14 @@ void ShvGame::logHole(Vec3 p) {
   }
 }
 
+void ShvGame::logStuck(const std::string& line) {
+  if (stuckFile.empty()) return;
+  if (FILE* f = std::fopen(stuckFile.c_str(), "a")) {
+    std::fprintf(f, "%s\n", line.c_str());
+    std::fclose(f);
+  }
+}
+
 bool ShvGame::resetKeyPressed() {
   bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
   bool pressed = down && !resetWasDown_;

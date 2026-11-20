@@ -70,7 +70,22 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
           say("Stuck in the ground - put back on the road here", now);
           sunkSince_ = -1;
         }
-        if (g_.resetKeyPressed()) resetHere(now, off);
+        if (g_.resetKeyPressed()) {
+          // what the stuck car looked like: where GTA's ground is around the car's centre, and how fast AC says it goes
+          auto probe = [&](float above) {
+            float z;
+            char b[16];
+            if (!g_.groundZ({last_.pos.x, last_.pos.y, last_.pos.z + above}, z)) return std::string("none");
+            std::snprintf(b, sizeof b, "%+.2f", z - last_.pos.z);
+            return std::string(b);
+          };
+          char line[200];
+          std::snprintf(line, sizeof line, "%.1f,%.1f,%.1f  speed %.0f km/h  gas %.2f  ground from +1m: %s  +2m: %s  +4m: %s",
+                        last_.pos.x, last_.pos.y, last_.pos.z, f.speedKmh, f.gas, probe(1.f).c_str(),
+                        probe(2.f).c_str(), probe(4.f).c_str());
+          g_.logStuck(line);
+          resetHere(now, off);
+        }
         if (showDiag_) {
           char d[160];
           std::snprintf(d, sizeof d, "AC gas %.2f brake %.2f steer %.0f   pedals %d", f.gas, f.brake,
