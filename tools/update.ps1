@@ -37,6 +37,14 @@ New-Item -ItemType Directory -Force $app | Out-Null
 Copy-Item (Join-Path $repo "csp\GtaLink\*") $app -Recurse -Force
 Ok "AC app installed in $app (restart AC to load it)"
 
+$keys = Get-Content (Join-Path $GtaDir "gta_link.ini") | Where-Object { $_ -match "^\s*[a-z_]+\s*=" } | ForEach-Object { ($_ -split "=")[0].Trim() }
+$dups = $keys | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name }
+if ($dups) {
+    Write-Host ""
+    Write-Host "WARNING: gta_link.ini has these settings more than once; GTA uses the FIRST one: $($dups -join ', ')" -ForegroundColor Red
+    Write-Host "         Open $GtaDir\gta_link.ini and keep one line each." -ForegroundColor Red
+}
+
 Write-Host ""
 Write-Host "New gta_link.ini settings you may not have yet (add them by hand if missing):" -ForegroundColor Yellow
 $mine = Get-Content (Join-Path $GtaDir "gta_link.ini") | ForEach-Object { ($_ -split "=")[0].Trim() }
