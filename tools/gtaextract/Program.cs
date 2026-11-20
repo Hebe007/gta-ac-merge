@@ -28,7 +28,8 @@ namespace GtaExtract
             // Movable in GTA, but so heavy that a car stops dead: keep them solid. --solid adds more name starts.
             var solid = new List<string> { "prop_barier_conc_", "prop_mp_conc_barrier", "prop_mp_barrier_02",
                 "prop_barrier_wat_", "prop_container_", "prop_contr_", "prop_conc_blocks", "prop_jersey",
-                "prop_concrete_", "prop_mb_cargo_", "prop_ind_barge_", "prop_byard_block_", "prop_jyard_block_" };
+                "prop_concrete_", "prop_mb_cargo_", "prop_ind_barge_", "prop_byard_block_", "prop_jyard_block_",
+                "prop_planter_", "prop_plant_int_", "prop_fountain", "prop_pot_plant_" };
             if (Arg(args, "--solid") is string more) solid.AddRange(more.Split(';', StringSplitOptions.RemoveEmptyEntries));
             if (gta == null || !Directory.Exists(gta))
             {
@@ -97,6 +98,9 @@ namespace GtaExtract
                         w.Add(m, ent.Position, ent.Orientation, ent.Scale, w.Source("obj:" + Name(hash)));
                     }
                 }
+                string movableList = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(outPath)) ?? ".", "movable_objects.txt");
+                File.WriteAllLines(movableList, movableNames.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Value,7}  {kv.Key}"));
+                Log($"every left-out movable object type is in {movableList}");
                 Log($"placed {interiors} interiors and {withCollision} of {entities} objects ({sw.Elapsed.TotalMinutes:0.0} min); " +
                     $"left out {movable} movable objects, most common: " +
                     string.Join(", ", movableNames.OrderByDescending(kv => kv.Value).Take(12).Select(kv => $"{kv.Key} {kv.Value}")));

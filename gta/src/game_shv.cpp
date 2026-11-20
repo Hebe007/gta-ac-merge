@@ -45,6 +45,18 @@ void ShvGame::setPose(int v, const Pose& p) {
   } else {
     // Drive it there instead of teleporting, so GTA's wheels roll and its suspension works.
     Vector3 c = nat::getEntityCoords(v);
+    float ex = p.pos.x - c.x, ey = p.pos.y - c.y, ez = p.pos.z - c.z;
+    // Touching something (barrier, pot, wall) and pushed away from where AC has the car: GTA's physics and AC's
+    // disagree, and following by velocity makes the car shake against it. Hold it frozen in AC's place instead.
+    if (nat::hasEntityCollidedWithAnything(v) && ex * ex + ey * ey + ez * ez > 0.3f * 0.3f) blockedFrames_ = 30;
+    if (blockedFrames_ > 0) {
+      blockedFrames_--;
+      if (!heldFrozen_) { nat::freezeEntityPosition(v, TRUE); heldFrozen_ = true; }
+      nat::setEntityCoordsNoOffset(v, p.pos.x, p.pos.y, p.pos.z);
+      nat::setEntityQuaternion(v, p.rot.x, p.rot.y, p.rot.z, p.rot.w);
+      return;
+    }
+    if (heldFrozen_) { nat::freezeEntityPosition(v, FALSE); heldFrozen_ = false; }
     Follow f = followVelocity(p.pos, {c.x, c.y, c.z}, p.vel, 10.f, 2.f);
     if (f.snap) nat::setEntityCoordsNoOffset(v, p.pos.x, p.pos.y, p.pos.z);
     nat::setEntityQuaternion(v, p.rot.x, p.rot.y, p.rot.z, p.rot.w);
@@ -137,6 +149,8 @@ void ShvGame::prepare(int v) {
 void ShvGame::release(int v) {
   // Give your car back as a normal GTA car (its engine sound stays the electric one until it's respawned).
   nat::freezeEntityPosition(v, FALSE);
+  heldFrozen_ = false;
+  blockedFrames_ = 0;
   nat::setEntityInvincible(v, FALSE);
   nat::setEntityCanBeDamaged(v, TRUE);
   nat::setVehicleCanBeVisiblyDamaged(v, TRUE);

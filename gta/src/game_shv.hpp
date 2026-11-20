@@ -48,4 +48,6 @@ class ShvGame : public Game {
   bool diagWasDown_ = false;
   bool resetWasDown_ = false;
   int repairCountdown_ = 0;
+  int blockedFrames_ = 0;   // > 0: GTA is pushing the car back from something; place it directly, frozen
+  bool heldFrozen_ = false;
 };

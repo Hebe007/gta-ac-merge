@@ -49,6 +49,7 @@ inline void endTextCommandDisplayText(float x, float y) { invoke<Void>(0xCD015E5
 inline float getEntityHeightAboveGround(Entity e) { return invoke<float>(0x1DD55701034110E5, e); }
 inline BOOL setVehicleOnGroundProperly(Vehicle v) { return invoke<BOOL>(0x49733E92263139D1, v, 5.0f); }
 inline void freezeEntityPosition(Entity e, BOOL on) { invoke<Void>(0x428CA6DBD1094446, e, on); }
+inline BOOL hasEntityCollidedWithAnything(Entity e) { return invoke<BOOL>(0x8BAD02F0368D9E14, e); }
 inline void setEntityInvincible(Entity e, BOOL on) { invoke<Void>(0x3882114BDE571AD4, e, on, TRUE); }
 inline void setEntityCanBeDamaged(Entity e, BOOL on) { invoke<Void>(0x1760FFA8AB074D66, e, on); }
 inline void setEntityProofsAll(Entity e) { invoke<Void>(0xFAEE099C6F890BB8, e, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE); }
