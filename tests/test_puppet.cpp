@@ -485,14 +485,15 @@ TEST_CASE("a GTA car hitting ours is sent to the AC app as an impulse, scaled by
     shm = {}; HitBlock hits{}; FakeGame g; Puppet p(g, "zr350", {.hitStrength = strength});
     acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", nullptr, &hits);
     acWrite({0, 30, 0}); p.tick(2.5, &shm, "", nullptr, &hits);  // well after linking
-    // GTA had our car going 10 m/s east; a car hit it and GTA's physics left it at 6 m/s east, 2 m/s north
-    g.hit = {{10, 0, 0}, {6, 2, 0}, {100, 200, 30}, 1.f / 60};
+    // we go 10 m/s east into a parked car of our weight: GTA pushed us back to 6 m/s and the other to 4 m/s
+    g.hit = {{10, 0, 0}, {6, 0, 0}, {4, 0, 0}, {100, 200, 30}, {-1, 0, 0}, 1300};
     g.hitPending = true;
     acWrite({0, 30, 0}); p.tick(2.516, &shm, "", nullptr, &hits);
     if (strength == 0) { CHECK(hits.count == 0); continue; }
     REQUIRE(hits.count == 1);
     float m = shm.massKg > 100 ? shm.massKg : 1300;
-    Vec3 want = gtaToAc({-4 * m * strength, 2 * m * strength, 0});
+    // closing 10 m/s, same mass, restitution 0.25: we lose 1.25 * 10 / 2 = 6.25 m/s
+    Vec3 want = gtaToAc({-6.25f * m * strength, 0, 0});
     CHECK(hits.impulse[0] == doctest::Approx(want.x));
     CHECK(hits.impulse[1] == doctest::Approx(want.y));
     CHECK(hits.impulse[2] == doctest::Approx(want.z));
@@ -506,8 +507,20 @@ TEST_CASE("a GTA car hitting ours is sent to the AC app as an impulse, scaled by
 TEST_CASE("no hits are sent right after linking (the car jumping into place is not a hit)") {
   shm = {}; HitBlock hits{}; FakeGame g; Puppet p(g, "zr350");
   acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", nullptr, &hits);
-  g.hit = {{10, 0, 0}, {0, 0, 0}, {0, 0, 0}, 1.f / 60};
+  g.hit = {{10, 0, 0}, {6, 0, 0}, {4, 0, 0}, {0, 0, 0}, {-1, 0, 0}, 1300};
   g.hitPending = true;
   acWrite({0, 30, 0}); p.tick(1.016, &shm, "", nullptr, &hits);
   CHECK(hits.count == 0);
+}
+
+TEST_CASE("one hit per contact: GTA pressing the cars together again next frame is not a second hit") {
+  shm = {}; HitBlock hits{}; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", nullptr, &hits);
+  acWrite({0, 30, 0}); p.tick(2.5, &shm, "", nullptr, &hits);
+  for (int i = 1; i <= 6; i++) {  // 6 frames of contact
+    g.hit = {{10, 0, 0}, {6, 0, 0}, {4, 0, 0}, {0, 0, 0}, {-1, 0, 0}, 1300};
+    g.hitPending = true;
+    acWrite({0, 30, 0}); p.tick(2.5 + i * 0.016, &shm, "", nullptr, &hits);
+  }
+  CHECK(hits.count == 1);
 }

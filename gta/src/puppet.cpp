@@ -113,11 +113,19 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
 
 void Puppet::feedHit(const LinkFrame& f, double now) {
   Game::Hit h;
-  if (!g_.takeHit(veh_, h) || !hits_ || opt_.hitStrength <= 0) return;
+  if (!g_.takeHit(veh_, h) || !hits_ || opt_.hitStrength <= 0) return;  // (always asked: it also tells GTA's side
+                                                                         // not to hold the car frozen for this contact)
+  // Once per contact: the AC car's new speed takes a couple of frames to reach GTA; until then GTA still sees
+  // the old speed pressing into the other car, which is not a new hit.
+  if (now < hitQuietUntil_) return;
   float mass = f.massKg > 100.f ? f.massKg : 1300.f;
-  auto imp = hitImpulse(h.vCommanded, h.vAfter, h.dt > 0 ? h.dt : 1.f / 60, mass, h.point,
-                        now < hitQuietUntil_ ? 0.f : 10.f);
-  if (!imp) return;
+  Vec3 dv = collisionDv(h.vCommanded, h.vAfter, h.vOther, mass, h.otherMass, h.away);
+  float size = std::sqrt(dv.x * dv.x + dv.y * dv.y);
+  if (size < kHitMinDv) return;
+  if (size > kHitMaxDv) dv = {dv.x * kHitMaxDv / size, dv.y * kHitMaxDv / size, 0};
+  hitQuietUntil_ = now + 0.2;
+  Impulse imp0{gtaToAc(h.point), gtaToAc({dv.x * mass, dv.y * mass, dv.z * mass})};
+  const Impulse* imp = &imp0;
   HitBlock b;
   for (int i = 0; i < 4 && !seqRead(hits_, b); i++) {}
   uint32_t slot = (b.count % kHitRing) * 3;

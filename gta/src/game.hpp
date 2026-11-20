@@ -39,7 +39,8 @@ class Game {
   virtual void logHole(Vec3 gtaPos) = 0;
   virtual void logStuck(const std::string& line) = 0;
   // A GTA car or pedestrian hit our car since the last setPose: the velocity we gave it, the velocity GTA's
-  // physics left it with, roughly where they touched, and the frame time (all GTA space). False if no such hit.
-  struct Hit { Vec3 vCommanded, vAfter, point; float dt; };
+  // physics left it with, the other's velocity now, its rough mass, where they touched, the direction from the
+  // other's centre to ours (all GTA space). False if no such hit.
+  struct Hit { Vec3 vCommanded, vAfter, vOther, point, away; float otherMass; };
   virtual bool takeHit(int vehicle, Hit& out) = 0;  // one line per F9 press, to see why the car got stuck
 };

@@ -10,6 +10,8 @@ static void checkVec(Vec3 a, Vec3 b, float eps = 1e-4f) {
 }
 static float len(Vec3 v) { return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
 
+static float length2(Vec3 v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
+
 TEST_CASE("acToGta maps axes") { checkVec(acToGta({1, 2, 3}), {1, -3, 2}); }
 
 TEST_CASE("gtaToAc inverts acToGta") {
@@ -130,4 +132,31 @@ TEST_CASE("steerInputValue: 0.5 centre, 0 full left, 1 full right") {
   CHECK(steerInputValue(0.f) == doctest::Approx(0.5f));
   CHECK(steerInputValue(1.f) == doctest::Approx(0.f));   // bias +1 = full left
   CHECK(steerInputValue(-1.f) == doctest::Approx(1.f));
+}
+
+TEST_CASE("collisionDv: into a parked car of the same weight at 20 m/s loses about 60% of the speed") {
+  // we go +x at 20 m/s; GTA pushed us back (-x); the other car (same mass) now moves +x at 5 m/s
+  Vec3 dv = collisionDv({20, 0, 0}, {15, 0, 0}, {5, 0, 0}, 1300, 1300, {-1, 0, 0});
+  // other before = 5 + (-5) = 0 (parked); closing 20; dv = 1.25 * 20 * 0.5 = 12.5 back
+  CHECK(dv.x == doctest::Approx(-12.5f));
+  CHECK(dv.y == doctest::Approx(0));
+}
+
+TEST_CASE("collisionDv: a heavy truck stops you more, a pedestrian barely") {
+  Vec3 truck = collisionDv({20, 0, 0}, {15, 0, 0}, {0.7f, 0, 0}, 1300, 9000, {-1, 0, 0});
+  Vec3 ped = collisionDv({20, 0, 0}, {19.9f, 0, 0}, {12, 0, 0}, 1300, 80, {-1, 0, 0});
+  CHECK(-truck.x > 18.f);
+  CHECK(-ped.x < 3.f);
+}
+
+TEST_CASE("collisionDv: already moving apart, or GTA pressing us back again, gives nothing") {
+  // a second frame of the same contact: we're already slower than the other car
+  CHECK(length2(collisionDv({8, 0, 0}, {6, 0, 0}, {12, 0, 0}, 1300, 1300, {-1, 0, 0})) == doctest::Approx(0));
+}
+
+TEST_CASE("collisionDv: hit from the side by a car is a push sideways, never up") {
+  // standing still; a car at 15 m/s from -y hits us; GTA pushed us +y and a bit up
+  Vec3 dv = collisionDv({0, 0, 0}, {0, 4, 1}, {0, 11, 0}, 1300, 1500, {0, 1, 0});
+  CHECK(dv.y > 5.f);
+  CHECK(dv.z == doctest::Approx(0));
 }

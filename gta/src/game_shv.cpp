@@ -192,6 +192,13 @@ void ShvGame::logHole(Vec3 p) {
   }
 }
 
+// GTA has no native for a vehicle's mass: a typical one per vehicle class (GET_VEHICLE_CLASS).
+static float vehicleClassMass(int cls) {
+  static const float kg[] = {1200, 1500, 2200, 1500, 1600, 1300, 1400, 1350, 250, 2000, 9000, 4000,
+                             2500, 90, 2000, 4000, 8000, 6000, 2000, 10000, 9000, 50000, 750};
+  return cls >= 0 && cls < static_cast<int>(sizeof kg / sizeof kg[0]) ? kg[cls] : 1500.f;
+}
+
 bool ShvGame::takeHit(int v, Hit& out) {
   dynamicHit_ = false;
   if (opt_.frozen || !haveCmd_ || !nat::hasEntityCollidedWithAnything(v)) return false;
@@ -207,12 +214,14 @@ bool ShvGame::takeHit(int v, Hit& out) {
   }
   if (!dynamic) return false;
   dynamicHit_ = true;
-  Vector3 va = nat::getEntityVelocity(v);
+  Vector3 va = nat::getEntityVelocity(v), vo = nat::getEntityVelocity(other);
   Vector3 c = nat::getEntityCoords(v), o = nat::getEntityCoords(other);
   out.vCommanded = cmdVel_;
   out.vAfter = {va.x, va.y, va.z};
+  out.vOther = {vo.x, vo.y, vo.z};
   out.point = {(c.x + o.x) / 2, (c.y + o.y) / 2, (c.z + o.z) / 2};
-  out.dt = nat::getFrameTime();
+  out.away = {c.x - o.x, c.y - o.y, c.z - o.z};
+  out.otherMass = nat::isEntityAPed(other) ? 80.f : vehicleClassMass(nat::getVehicleClass(other));
   return true;
 }
 

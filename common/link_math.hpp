@@ -24,6 +24,16 @@ constexpr float kGravity = 9.81f;
 std::optional<Impulse> hitImpulse(Vec3 vCommandedGta, Vec3 vAfterGta, float dt, float massKg,
                                   Vec3 contactPointGta, float secondsSinceReset);
 
+// A GTA car or pedestrian hitting ours, worked out as a collision of two bodies. (GTA's own push on our car can't be
+// used as it is: we press our car back into the other one every frame, and GTA pushes it out again every frame.)
+// GTA's push gives the direction; the masses and how fast the two closed in give the size, once per contact.
+// vBefore/vAfter: our velocity before/after GTA's physics step; vOther: the other's velocity after it;
+// away: from the other's centre to ours (used when GTA's push is too small to tell a direction).
+// restitution: 0 = the cars stay together, 1 = a perfect bounce. Returns our change of velocity, horizontal, GTA space.
+constexpr float kHitRestitution = 0.25f;
+Vec3 collisionDv(Vec3 vBefore, Vec3 vAfter, Vec3 vOther, float myMass, float otherMass, Vec3 away,
+                 float restitution = kHitRestitution);
+
 constexpr float kOffSurfaceMeters = 5.0f;
 bool isOffSurface(float acCarHeightGta, float gtaGroundZ);
 

@@ -82,6 +82,20 @@ std::optional<Impulse> hitImpulse(Vec3 vCmd, Vec3 vAfter, float dt, float massKg
   return Impulse{gtaToAc(contactGta), gtaToAc(mul(dv, massKg))};
 }
 
+Vec3 collisionDv(Vec3 vBefore, Vec3 vAfter, Vec3 vOther, float m1, float m2, Vec3 away, float e) {
+  if (m1 <= 0 || m2 <= 0) return {0, 0, 0};
+  Vec3 push = sub(vAfter, vBefore);
+  push.z = 0;  // car-to-car hits are sideways; GTA's gravity and suspension are in z
+  Vec3 n = length(push) > 0.2f ? normalize(push) : normalize(Vec3{away.x, away.y, 0});
+  if (length(n) < 0.5f) return {0, 0, 0};
+  // GTA's step pushed the other one too (momentum: m1 dv1 = -m2 dv2): its velocity before the hit
+  float share = std::min(m1 / m2, 5.f);
+  Vec3 otherBefore = add(vOther, mul(push, share));
+  float closing = dot(sub(vBefore, otherBefore), n);  // < 0: moving into each other
+  if (closing >= 0) return {0, 0, 0};
+  return mul(n, -(1 + e) * closing * m2 / (m1 + m2));
+}
+
 bool isOffSurface(float carZ, float groundZ) { return carZ < groundZ - kOffSurfaceMeters; }
 
 Vec3 angularVelocity(Quat from, Quat to, float dt) {

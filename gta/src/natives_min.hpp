@@ -58,7 +58,7 @@ inline BOOL isEntityTouchingEntity(Entity a, Entity b) { return invoke<BOOL>(0x1
 inline Vehicle getClosestVehicle(float x, float y, float z, float r, Hash model, int flags) {
   return invoke<Vehicle>(0xF73EB622C4F1689B, x, y, z, r, model, flags);
 }
-inline float getFrameTime() { return invoke<float>(0x15C40837039FFAF7); }
+inline int getVehicleClass(Vehicle v) { return invoke<int>(0x29439776AAA00A62, v); }
 inline void setEntityInvincible(Entity e, BOOL on) { invoke<Void>(0x3882114BDE571AD4, e, on, TRUE); }
 inline void setEntityCanBeDamaged(Entity e, BOOL on) { invoke<Void>(0x1760FFA8AB074D66, e, on); }
 inline void setEntityProofsAll(Entity e) { invoke<Void>(0xFAEE099C6F890BB8, e, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE); }
