@@ -338,7 +338,7 @@ TEST_CASE("F8 in a GTA car asks AC to move there, then uses that car") {
   CHECK(g.exists(42));                           // your car stays
 }
 
-TEST_CASE("if AC can't teleport, F8 in a car falls back to a new car at AC's position") {
+TEST_CASE("if AC can't teleport, you keep your car and it is brought to the AC car") {
   shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
   g.alive.push_back(42); g.inVehicle = 42; g.pos = {100, 200, 30};
   acWrite({0, 30, 0});
@@ -346,20 +346,31 @@ TEST_CASE("if AC can't teleport, F8 in a car falls back to a new car at AC's pos
   acAck(1, -1); acWrite({0, 30, 0});
   p.tick(1.1, &shm, "", &cmd);
   CHECK(p.linked());
-  CHECK(g.spawnedModel == "zr350");
+  CHECK(g.spawnedModel.empty());   // no new car: you keep the look you picked
+  CHECK(g.prepared == std::vector<int>{42});
   CHECK(p.message().find("can't move") != std::string::npos);
 }
 
-TEST_CASE("if AC doesn't answer within 3 s, falls back the same way") {
+TEST_CASE("if AC says moved but the AC car isn't there after 3 s, same: keep your car, say why") {
   shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
-  g.alive.push_back(42); g.inVehicle = 42;
+  g.alive.push_back(42); g.inVehicle = 42; g.pos = {100, 200, 30};
   acWrite({0, 30, 0});
   g.key = true; p.tick(1.0, &shm, "", &cmd);
-  acWrite({0, 30, 0}); p.tick(2.0, &shm, "", &cmd);
+  acAck(1, 1); acWrite({0, 30, 0}); p.tick(2.0, &shm, "", &cmd);  // "moved", but still far away
   CHECK_FALSE(p.linked());
   acWrite({0, 30, 0}); p.tick(4.1, &shm, "", &cmd);
   CHECK(p.linked());
-  CHECK(g.spawnedModel == "zr350");
+  CHECK(g.spawnedModel.empty());
+  CHECK(p.message().find("didn't move") != std::string::npos);
+}
+
+TEST_CASE("an AC car already a few metres away doesn't count as having teleported") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.alive.push_back(42); g.inVehicle = 42; g.pos = {6, 0, 30};
+  acWrite({0, 30, 0});  // AC car 6 m from your GTA car, before any teleport
+  g.key = true; p.tick(1.0, &shm, "", &cmd);
+  acAck(1, 1); acWrite({0, 30, 0}); p.tick(1.1, &shm, "", &cmd);
+  CHECK_FALSE(p.linked());  // still waiting for the AC car to really arrive
 }
 
 TEST_CASE("link message names the script version and build") {

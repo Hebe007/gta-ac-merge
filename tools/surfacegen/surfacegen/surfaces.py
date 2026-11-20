@@ -91,8 +91,12 @@ def build_meshes(tris: list[Tri], table: dict[str, str], bbox_gta: tuple[float, 
         if key == "NONE":
             continue
         a, b, c = (gta_to_ac(p) for p in (t.a, t.b, t.c))
-        if key != "WALL" and _normal(a, b, c)[1] < 0:  # floors face up (+Y) in AC
-            b, c = c, b
+        if key != "WALL":
+            # GTA's faces point outwards. One facing down is an underside or ceiling: a barrier for the car's body,
+            # never ground (turning it up would put a hidden floor inside every ramp, bump and bridge).
+            n = _normal(a, b, c)
+            if n[1] < -_COS_WALL * math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2):
+                key = "WALL"
         mesh = meshes.setdefault(key, Mesh())
         index = lookup.setdefault(key, {})
         for p in (a, b, c):

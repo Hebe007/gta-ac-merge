@@ -37,13 +37,20 @@ def test_unknown_material_is_road_with_warning(caplog):
     assert "MYSTERY_GOO" in caplog.text
 
 
-def test_vertices_converted_to_ac_space_and_face_up():
-    meshes = build_meshes([tri(((0, 0, 0), (0, 1, 0), (1, 0, 0)))], TABLE, None)  # GTA normal points down
+def test_vertices_converted_to_ac_space_keeping_their_facing():
+    meshes = build_meshes([tri(((0, 0, 0), (1, 0, 0), (0, 1, 0)))], TABLE, None)  # GTA normal points up
     m = meshes["ROAD"]
     assert set(m.vertices) == {(0, 0, 0), (0, 0, -1), (1, 0, 0)}  # AC = (x, z, -y)
     a, b, c = (m.vertices[i] for i in m.indices[:3])
     n_y = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2])
     assert n_y > 0
+
+
+def test_downward_faces_become_barriers_not_ground():
+    # undersides of ramps, bumps and bridges, tunnel ceilings: turning them up made hidden floors inside objects
+    under = tri(((0, 0, 0), (0, 1, 0), (1, 0, 0)))  # GTA normal points down
+    meshes = build_meshes([under], TABLE, None)
+    assert set(meshes) == {"WALL"}
 
 
 def test_bbox_drops_triangles_outside_by_centroid():

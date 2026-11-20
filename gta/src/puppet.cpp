@@ -90,35 +90,37 @@ void Puppet::requestTeleport(int veh, volatile LinkCommand* cmd, double now) {
 }
 
 void Puppet::finishTeleport(const LinkFrame& f, double now) {
-  if (f.connected && f.teleportAck == teleportId_ && f.teleportStatus < 0) {
-    fallbackSpawn(f, now, "Assetto Corsa can't move the car (CSP doesn't allow it here)");
+  bool answered = f.connected && f.teleportAck == teleportId_;
+  if (answered && f.teleportStatus < 0) {
+    adopt(f, now, "Assetto Corsa can't move the car (CSP refused) - your car was brought to the AC car instead");
     return;
   }
   Vec3 target = g_.position(pendingVeh_);
-  bool arrived = f.connected && f.fresh && f.teleportAck == teleportId_ && f.teleportStatus > 0 &&
-                 std::fabs(f.pose.pos.x - target.x) < 10.f && std::fabs(f.pose.pos.y - target.y) < 10.f;
+  float dx = f.pose.pos.x - target.x, dy = f.pose.pos.y - target.y, dz = f.pose.pos.z - target.z;
+  bool arrived = answered && f.teleportStatus > 0 && f.fresh && dx * dx + dy * dy + dz * dz < 3.f * 3.f;
   if (arrived) {
-    veh_ = pendingVeh_;
-    pendingVeh_ = 0;
-    adopted_ = true;
-    g_.prepare(veh_);
-    gtaH_ = g_.originHeight(veh_);
-    last_ = f.pose;
-    haveLast_ = false;  // the AC car just jumped; don't mistake that for a trainer teleport
-    lift_ = opt_.heightTrim;
-    calPending_ = !calibrate(f, now);
-    calUntil_ = now + 5.0;
-    if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+    adopt(f, now, "");
   } else if (now - pendingSince_ > 3.0) {
-    fallbackSpawn(f, now, "Assetto Corsa didn't answer (is the GTA Link app up to date?)");
+    adopt(f, now, answered ? "Assetto Corsa said it moved the car but it didn't move (CSP ignores teleports from apps?)"
+                             " - your car was brought to the AC car instead"
+                           : "Assetto Corsa didn't answer (is the GTA Link app up to date?) - your car was brought to"
+                             " the AC car instead");
   }
 }
 
-void Puppet::fallbackSpawn(const LinkFrame& f, double now, const std::string& why) {
+void Puppet::adopt(const LinkFrame& f, double now, const std::string& why) {
+  veh_ = pendingVeh_;
   pendingVeh_ = 0;
-  link(f, now, "");
-  if (linked()) say(why + " - using a new car at AC's position. " + msg_, now);
-  else say(why + ". " + msg_, now);
+  adopted_ = true;
+  g_.prepare(veh_);
+  gtaH_ = g_.originHeight(veh_);
+  last_ = f.pose;
+  haveLast_ = false;  // the car is about to jump to AC's position; don't mistake that for a trainer teleport
+  lift_ = opt_.heightTrim;
+  calPending_ = !calibrate(f, now);
+  calUntil_ = now + 5.0;
+  if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+  if (!why.empty()) say(why + ". " + msg_, now);
 }
 
 void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) {

@@ -146,3 +146,13 @@ def test_kerb_faces_get_a_ramp_in_front():
     assert bulk.KEYS[keys2[-1]] == "ROAD"
     s3, _, none = bulk.ramp_kerbs(s, keys, 0.35, 0)
     assert none == 0 and len(s3.tris) == 3
+
+
+def test_bulk_downward_faces_become_barriers_steep_ones_keep_their_key():
+    up = Tri((0, 0, 0), (1, 0, 0), (0, 1, 0), "TARMAC")
+    down = Tri((5, 0, 1), (5, 1, 1), (6, 0, 1), "TARMAC")
+    kerb = Tri((0, 5, 0), (1, 5, 0), (0, 5, 0.15), "TARMAC")  # vertical, low: stays drivable
+    s = soup_of([up, down, kerb])
+    keys = bulk.classify(s, load_table(), 0.35)
+    m = bulk.build_meshes(s, keys)
+    assert len(m["ROAD"]) == 2 and len(m["WALL"]) == 1

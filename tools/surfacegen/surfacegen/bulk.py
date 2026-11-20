@@ -256,18 +256,20 @@ def build_meshes(s: Soup, keys: np.ndarray, bbox_gta=None) -> dict[str, np.ndarr
         c = s.verts[s.tris].mean(1)
         x0, y0, x1, y1 = bbox_gta
         mask_all = ((c[:, 0] >= min(x0, x1)) & (c[:, 0] <= max(x0, x1)) & (c[:, 1] >= min(y0, y1)) & (c[:, 1] <= max(y0, y1)))
+    cos_wall = math.cos(math.radians(WALL_SLOPE_DEG))
+    downward = np.zeros(len(s.tris), bool)
+    a, b, c = va[s.tris[:, 0]], va[s.tris[:, 1]], va[s.tris[:, 2]]
+    n = np.cross((b - a).astype(np.float64), (c - a).astype(np.float64))
+    # GTA's faces point outwards. One facing down is an underside or ceiling: a barrier for the car's body, never
+    # ground (turning it up would put a hidden floor inside every ramp, bump and bridge).
+    downward = n[:, 1] < -cos_wall * np.linalg.norm(n, axis=1)
+    keys = np.where(downward & (keys != KEYS.index("NONE")), WALL, keys)
     for ki, key in enumerate(KEYS):
         if key == "NONE":
             continue
-        t = s.tris[(keys == ki) & mask_all].copy()
-        if not len(t):
-            continue
-        if key != "WALL":
-            a, b, c = va[t[:, 0]], va[t[:, 1]], va[t[:, 2]]
-            ny = (b[:, 2] - a[:, 2]) * (c[:, 0] - a[:, 0]) - (b[:, 0] - a[:, 0]) * (c[:, 2] - a[:, 2])
-            down = ny < 0
-            t[down] = t[down][:, [0, 2, 1]]
-        out[key] = t
+        t = s.tris[(keys == ki) & mask_all]
+        if len(t):
+            out[key] = t
     return {"__verts__": va, **out}
 
 

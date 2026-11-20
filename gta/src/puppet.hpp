@@ -34,7 +34,7 @@ class Puppet {
   bool offMap(Vec3 carPos);
   void requestTeleport(int vehicle, volatile LinkCommand* cmd, double now);
   void finishTeleport(const LinkFrame& f, double now);
-  void fallbackSpawn(const LinkFrame& f, double now, const std::string& why);  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
+  void adopt(const LinkFrame& f, double now, const std::string& why);  // take over the car you're in  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;
