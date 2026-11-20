@@ -123,31 +123,67 @@ local function changes(car)
   return #out > 0 and table.concat(out, ', ') or 'nothing measurable changed'
 end
 
+-- A twisted wheel (AC's wheel joints after a hard hit) stays twisted through resetCarState; re-placing the car (what F9
+-- does) puts the wheels back. Repair = both, right where the car is, keeping its speed and fuel.
+local CAMBER_OFF, TOE_OFF = 8, 3  -- degrees away from the straight car that count as twisted (normal driving: < 4)
+local bentSince = nil
+
 local function repair(car, why)
-  local fuel, vel = car.fuel, car.velocity:clone()
+  local fuel = car.fuel
   local changed = changes(car)
   local ok, err = pcall(physics.resetCarState, 0, 1)
   if ok and fuel then pcall(physics.setCarFuel, 0, fuel) end
-  if ok then keepVel = vel end  -- in case the repair slows the car
+  local f = vec3(car.look.x, 0, car.look.z)
+  if f:length() < 1e-3 then f = vec3(0, 0, 1) end
+  teleport(car.position:clone(), f:normalize())  -- in place: keeps the speed (see keepVel)
   repairs = repairs + 1
   lastRepair = simTime
   base = nil  -- measure the repaired car again
+  bentSince = nil
   repairMsg = ok and string.format('repaired (%s): %s', why, changed) or ('repair refused: ' .. tostring(err))
+end
+
+local function twisted(car)
+  if not base then return nil end
+  local ok, why = pcall(function()
+    for i = 0, 3 do
+      local w = car.wheels[i]
+      local dc = (w.camber or 0) - base[i].camber
+      if math.abs(dc) > CAMBER_OFF then return string.format('%s camber %+.0f', WHEEL[i], dc) end
+      if i >= 2 then
+        local dt = (w.toeIn or 0) - base[i].toe
+        if math.abs(dt) > TOE_OFF then return string.format('%s toe %+.0f', WHEEL[i], dt) end
+      end
+    end
+  end)
+  return ok and why or nil
+end
+
+local function onGround(car)
+  local ok, n = pcall(function()
+    local n = 0
+    for i = 0, 3 do if (car.wheels[i].load or 0) > 50 then n = n + 1 end end
+    return n
+  end)
+  return ok and n >= 3
 end
 
 local function watchDamage(car, dt)
   simTime = simTime + dt
-  if not base and simTime - lastRepair > 0.5 then base = snapshot(car) end
+  if not base and simTime - lastRepair > 0.5 and onGround(car) then base = snapshot(car) end
   local v = car.velocity
   if prevVel and dt > 0 then
     local g = (v - prevVel):length() / dt / 9.81
-    if g > IMPACT_G and not impactAt and simTime > quietUntil then impactAt, impactG = simTime, g end
-    if impactAt then impactG = math.max(impactG, g) end
+    if g > IMPACT_G and simTime > quietUntil then impactAt, impactG = simTime, math.max(g, impactAt and impactG or 0) end
   end
   prevVel = v:clone()
-  -- repair once the hit is over (0.3 s), at most once a second
-  if autoRepair and impactAt and simTime - impactAt > 0.3 then
-    if simTime - lastRepair > 1 then repair(car, string.format('hit %.0f g', impactG)) end
+  -- a wheel twisted for 0.3 s with the car on the ground: repair (in the air it would snap the car down)
+  local why = autoRepair and simTime - lastRepair > 1 and twisted(car)
+  if not why or not onGround(car) then bentSince = nil; return end
+  bentSince = bentSince or simTime
+  if simTime - bentSince > 0.3 then
+    local hit = impactAt and simTime - impactAt < 10 and string.format(', hit %.0f g', impactG) or ''
+    repair(car, why .. hit)
     impactAt = nil
   end
 end
