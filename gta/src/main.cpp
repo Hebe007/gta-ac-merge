@@ -41,6 +41,7 @@ static void ScriptMain() {
   po.steerScale = std::strtof(iniValue("steer_scale", "1").c_str(), nullptr);
   po.steerOffset = std::strtof(iniValue("steer_offset", "0").c_str(), nullptr);
   po.pedals = iniValue("pedals", "1") == "1";
+  po.autoReset = iniValue("auto_reset", "1") == "1";
   Puppet puppet(game, iniValue("model", "sultan"), po);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);

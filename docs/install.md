@@ -31,7 +31,8 @@ top of the script once). It pulls, builds, installs the GTA script and the AC ap
    - **in a GTA car**: the AC car is moved to that car and the link uses it (handy with a trainer: spawn or
      teleport, then F8). If CSP refuses to move the AC car, it falls back to a new car at AC's position.
    The GTA Link window in AC also has teleport buttons (edit `places.lua` to add your own spots).
-5. **F8** again (or getting out of the car) turns the link off. Reset the car in AC if you fall off the map.
+5. **F9** puts the AC car back on its wheels at your current spot (also automatic if you fall through the map).
+   **F7** shows diagnostics. **F8** again (or getting out of the car) turns the link off. Reset the car in AC if you fall off the map.
 
 ## On-screen messages
 - `waiting for Assetto Corsa`: AC stopped sending (closed, paused, loading). The GTA car is frozen; it resumes by itself.

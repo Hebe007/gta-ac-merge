@@ -32,6 +32,7 @@ class Game {
   virtual void release(int vehicle) = 0;
   // F7 diagnostics: what GTA itself reports about the car (speed, engine) and the settings it runs with.
   virtual bool diagKeyPressed() = 0;
+  virtual bool resetKeyPressed() = 0;  // F9: put the AC car back on its wheels right here
   virtual std::string diagnostics(int vehicle) = 0;
   // Remember a spot where the car fell through the generated track (appended to gta_link_holes.txt).
   virtual void logHole(Vec3 gtaPos) = 0;

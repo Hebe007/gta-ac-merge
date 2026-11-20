@@ -14,6 +14,7 @@ struct PuppetOptions {
   float steerScale = 1;     // GTA wheel angle per AC wheel angle (lower if GTA hits full lock too early)
   float steerOffset = 0;    // added to the centre (-1..1, + = left) if GTA's wheels aren't straight
   bool pedals = true;       // pass AC's throttle/brake to GTA (rev counter, brake lights)
+  bool autoReset = true;    // under the map for over a second: put the car back on its wheels right there
 };
 
 class Puppet {
@@ -34,7 +35,9 @@ class Puppet {
   bool offMap(Vec3 carPos);
   void requestTeleport(int vehicle, volatile LinkCommand* cmd, double now);
   void finishTeleport(const LinkFrame& f, double now);
-  void adopt(const LinkFrame& f, double now, const std::string& why);  // take over the car you're in  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
+  void adopt(const LinkFrame& f, double now, const std::string& why);
+  void resetHere(double now, bool off);  // send the AC car upright onto GTA's ground at the current spot
+  bool sendTeleport(Vec3 acPos, Vec3 acFwd);  // take over the car you're in  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;
@@ -43,6 +46,8 @@ class Puppet {
   float lift_ = 0;
   bool showDiag_ = false;
   bool wasOffMap_ = false;
+  double offSince_ = -1, lastReset_ = -10;
+  volatile LinkCommand* cmd_ = nullptr;
   bool adopted_ = false;       // the car you were in, not one we spawned
   int pendingVeh_ = 0;         // waiting for the AC app to move the AC car here
   uint32_t teleportId_ = 0;

@@ -14,6 +14,7 @@ std::string gearName(int g) { return g < 0 ? "R" : g == 0 ? "N" : std::to_string
 void Puppet::tick(double now, const volatile LinkState* raw, const std::string& shmStatus,
                   volatile LinkCommand* cmd) {
   LinkFrame f = client_.update(raw, now);
+  cmd_ = cmd;
 
   if (g_.linkKeyPressed()) {
     if (linked()) unlink("GTA link off", now);
@@ -47,6 +48,10 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         if (off) g_.drawText(0.5f, 0.12f, "Off the map - reset the car in Assetto Corsa (spot saved to gta_link_holes.txt)");
         if (off && !wasOffMap_) g_.logHole(last_.pos);
         wasOffMap_ = off;
+        if (!off) offSince_ = -1;
+        else if (offSince_ < 0) offSince_ = now;
+        else if (opt_.autoReset && now - offSince_ > 1.0 && now - lastReset_ > 2.0) resetHere(now, true);
+        if (g_.resetKeyPressed()) resetHere(now, off);
         if (showDiag_) {
           char d[160];
           std::snprintf(d, sizeof d, "AC gas %.2f brake %.2f steer %.0f   pedals %d", f.gas, f.brake,
@@ -70,20 +75,43 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
   if (now < msgUntil_) g_.drawText(0.5f, 0.05f, msg_);
 }
 
+bool Puppet::sendTeleport(Vec3 acPos, Vec3 acFwd) {
+  if (!cmd_) return false;
+  LinkCommand c{};
+  c.magic = LINK_MAGIC;
+  c.version = LINK_VERSION;
+  c.seq = cmd_->seq;
+  c.teleportId = ++teleportId_;
+  c.pos[0] = acPos.x; c.pos[1] = acPos.y; c.pos[2] = acPos.z;
+  c.fwd[0] = acFwd.x; c.fwd[1] = acFwd.y; c.fwd[2] = acFwd.z;
+  seqWrite(cmd_, c);
+  return true;
+}
+
+void Puppet::resetHere(double now, bool off) {
+  Vec3 p = last_.pos;
+  float gz = p.z;
+  bool found = off ? g_.groundZ({p.x, p.y, p.z + 50.f}, gz)  // fell through: the ground is above us
+                   : g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f;
+  if (!found) gz = p.z;
+  Vec3 fwd = rotate(last_.rot, {0, 1, 0});
+  fwd.z = 0;  // level, wheels down
+  float len = std::sqrt(fwd.x * fwd.x + fwd.y * fwd.y);
+  fwd = len > 1e-3f ? Vec3{fwd.x / len, fwd.y / len, 0} : Vec3{0, 1, 0};
+  if (sendTeleport(gtaToAc({p.x, p.y, gz + 1.f}), gtaToAc(fwd))) {
+    lastReset_ = now;
+    say(off ? "Fell through - put back on the road here" : "Car reset here (F9)", now);
+  }
+}
+
 void Puppet::requestTeleport(int veh, volatile LinkCommand* cmd, double now) {
   Vec3 p = g_.position(veh);
   float gz;
   float z = g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f ? gz : p.z - 0.5f;
   Vec3 acPos = gtaToAc({p.x, p.y, z + 1.f});  // drop it from 1 m above GTA's ground
   Vec3 acFwd = gtaToAc(rotate(g_.rotation(veh), {0, 1, 0}));
-  LinkCommand c{};
-  c.magic = LINK_MAGIC;
-  c.version = LINK_VERSION;
-  c.seq = cmd->seq;
-  c.teleportId = ++teleportId_;
-  c.pos[0] = acPos.x; c.pos[1] = acPos.y; c.pos[2] = acPos.z;
-  c.fwd[0] = acFwd.x; c.fwd[1] = acFwd.y; c.fwd[2] = acFwd.z;
-  seqWrite(cmd, c);
+  cmd_ = cmd;
+  sendTeleport(acPos, acFwd);
   pendingVeh_ = veh;
   pendingSince_ = now;
   say("GTA link: moving the Assetto Corsa car to this car...", now);

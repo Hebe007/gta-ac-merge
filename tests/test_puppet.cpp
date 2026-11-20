@@ -47,6 +47,8 @@ struct FakeGame : Game {
   void release(int v) override { released.push_back(v); }
   bool diag = false;
   bool diagKeyPressed() override { bool k = diag; diag = false; return k; }
+  bool reset = false;
+  bool resetKeyPressed() override { bool k = reset; reset = false; return k; }
   std::string diagnostics(int) override { return "GTA speed 42 km/h"; }
   std::vector<Vec3> holes;
   void logHole(Vec3 p) override { holes.push_back(p); }
@@ -399,4 +401,30 @@ TEST_CASE("falling through is logged once per fall") {
   acWrite({0, 30.3f, 0}); p.tick(2.0, &shm);       // back on the road (reset)
   acWrite({50, 10, 0}); p.tick(2.1, &shm);         // falls again elsewhere
   CHECK(g.holes.size() == 2);
+}
+
+TEST_CASE("F9 puts the AC car back on its wheels at the current spot, facing the way you drove") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.ground = 29.5f;
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);
+  acWrite({10, 30, -20}); p.tick(1.016, &shm, "", &cmd);
+  g.reset = true; acWrite({10, 30, -20}); p.tick(1.032, &shm, "", &cmd);
+  REQUIRE(cmd.teleportId == 1);
+  CHECK(cmd.pos[0] == doctest::Approx(10));
+  CHECK(cmd.pos[1] == doctest::Approx(30.5f));  // GTA ground + 1 m
+  CHECK(cmd.pos[2] == doctest::Approx(-20));
+  CHECK(cmd.fwd[1] == doctest::Approx(0));      // level
+  CHECK(cmd.fwd[2] == doctest::Approx(-1));
+  CHECK(p.linked());
+}
+
+TEST_CASE("stuck under the map for over a second resets by itself (unless auto_reset is off)") {
+  for (int autoReset = 0; autoReset < 2; autoReset++) {
+    shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350", {.autoReset = autoReset == 1});
+    g.ground = 30;
+    acWrite({0, 10, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);
+    for (int i = 1; i <= 80; i++) { acWrite({0, 10, 0}); p.tick(1.0 + i * 0.016, &shm, "", &cmd); }
+    CHECK(cmd.teleportId == (autoReset ? 1u : 0u));
+    if (autoReset) CHECK(cmd.pos[1] == doctest::Approx(31));  // onto the ground above, + 1 m
+  }
 }

@@ -32,6 +32,7 @@ class ShvGame : public Game {
   void prepare(int vehicle) override;
   void release(int vehicle) override;
   bool diagKeyPressed() override;
+  bool resetKeyPressed() override;
   std::string diagnostics(int vehicle) override;
   void logHole(Vec3 gtaPos) override;
   std::string holesFile;  // set by main: next to the .asi
@@ -40,5 +41,6 @@ class ShvGame : public Game {
   ShvOptions opt_;
   bool keyWasDown_ = false;
   bool diagWasDown_ = false;
+  bool resetWasDown_ = false;
   int repairCountdown_ = 0;
 };

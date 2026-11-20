@@ -169,3 +169,10 @@ void ShvGame::logHole(Vec3 p) {
     std::fclose(f);
   }
 }
+
+bool ShvGame::resetKeyPressed() {
+  bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+  bool pressed = down && !resetWasDown_;
+  resetWasDown_ = down;
+  return pressed;
+}
