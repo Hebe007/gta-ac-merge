@@ -125,7 +125,11 @@ end
 
 -- A twisted wheel (AC's wheel joints after a hard hit) stays twisted through resetCarState; re-placing the car (what F9
 -- does) puts the wheels back. Repair = both, right where the car is, keeping its speed and fuel.
-local CAMBER_OFF, TOE_OFF = 8, 3  -- degrees away from the straight car that count as twisted (normal driving: < 4)
+local CAMBER_OFF, TOE_OFF = 12, 5  -- degrees away from the straight car that count as twisted
+-- Kerbs and drifts lean the wheels too, but only for a moment and never steadily: a twisted wheel stays at the same
+-- angle. So it must stay within STEADY degrees of where it was for HOLD seconds.
+local STEADY, HOLD = 2, 1.0
+local bentAngle = nil
 local bentSince = nil
 
 local function repair(car, why)
@@ -145,18 +149,19 @@ end
 
 local function twisted(car)
   if not base then return nil end
-  local ok, why = pcall(function()
+  local ok, why, which, angle = pcall(function()
     for i = 0, 3 do
       local w = car.wheels[i]
       local dc = (w.camber or 0) - base[i].camber
-      if math.abs(dc) > CAMBER_OFF then return string.format('%s camber %+.0f', WHEEL[i], dc) end
+      if math.abs(dc) > CAMBER_OFF then return string.format('%s camber %+.0f', WHEEL[i], dc), i * 2, dc end
       if i >= 2 then
         local dt = (w.toeIn or 0) - base[i].toe
-        if math.abs(dt) > TOE_OFF then return string.format('%s toe %+.0f', WHEEL[i], dt) end
+        if math.abs(dt) > TOE_OFF then return string.format('%s toe %+.0f', WHEEL[i], dt), i * 2 + 1, dt end
       end
     end
   end)
-  return ok and why or nil
+  if not ok then return nil end
+  return why, which, angle
 end
 
 local function onGround(car)
@@ -177,11 +182,14 @@ local function watchDamage(car, dt)
     if g > IMPACT_G and simTime > quietUntil then impactAt, impactG = simTime, math.max(g, impactAt and impactG or 0) end
   end
   prevVel = v:clone()
-  -- a wheel twisted for 0.3 s with the car on the ground: repair (in the air it would snap the car down)
-  local why = autoRepair and simTime - lastRepair > 1 and twisted(car)
+  -- a wheel twisted steadily for HOLD s with the car on the ground: repair (in the air it would snap the car down)
+  local why, which, angle
+  if autoRepair and simTime - lastRepair > 1 then why, which, angle = twisted(car) end
   if not why or not onGround(car) then bentSince = nil; return end
-  bentSince = bentSince or simTime
-  if simTime - bentSince > 0.3 then
+  if not bentSince or bentAngle.which ~= which or math.abs(angle - bentAngle.angle) > STEADY then
+    bentSince, bentAngle = simTime, { which = which, angle = angle }  -- (re)start: not steady yet
+  end
+  if simTime - bentSince > HOLD then
     local hit = impactAt and simTime - impactAt < 10 and string.format(', hit %.0f g', impactG) or ''
     repair(car, why .. hit)
     impactAt = nil
