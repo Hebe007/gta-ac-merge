@@ -60,3 +60,14 @@ def test_probe_lists_surfaces_exactly_at_the_spot(capsys):
     assert "the car fell from about here" in out
     probe.report(b.soup(), 50, 50, check_filters=False)
     assert "0 collision file(s)" in capsys.readouterr().out
+
+
+def test_probe_radius_finds_neighbouring_pieces(capsys):
+    b = bulk._Builder()
+    b.add("here_0.ybn.xml", [Tri((0, 0, 28), (2, 0, 28), (0, 2, 28), "CONCRETE")])
+    b.add("next_door@1", [Tri((20, 0, 28), (24, 0, 28), (20, 4, 28), "CONCRETE")])  # 20 m away
+    probe.report(b.soup(), 1, 1, radius=8, check_filters=False)
+    assert "next_door@1" not in capsys.readouterr().out
+    probe.report(b.soup(), 1, 1, radius=30, check_filters=False)
+    out = capsys.readouterr().out
+    assert "next_door@1" in out and "closest" in out

@@ -191,6 +191,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--zmax", type=float, default=1500.0, help="drop collision above this height (sky sets)")
     ap.add_argument("--probe", action="append", default=[], metavar="X,Y",
                     help="after building, show what the finished track has at this GTA spot (repeatable)")
+    ap.add_argument("--probe-radius", type=float, default=8.0, help="how far around each probe spot to look (m)")
     ap.add_argument("--probe-file", type=Path,
                     help="probe every spot in this file (gta_link_holes.txt from the GTA folder: x,y,z per line)")
     ap.add_argument("--engine", choices=("bulk", "python"), default="bulk",
@@ -295,8 +296,8 @@ def _run_bulk(a) -> None:
         from .probe import report
         for spot in a.probe:
             parts = [float(v) for v in spot.split(",")]
-            report(soup.subset(keys != bulk.KEYS.index("NONE")), parts[0], parts[1], check_filters=False,
-                   z=parts[2] if len(parts) > 2 else None)
+            report(soup.subset(keys != bulk.KEYS.index("NONE")), parts[0], parts[1], radius=a.probe_radius,
+                   check_filters=False, z=parts[2] if len(parts) > 2 else None)
     meshes = bulk.build_meshes(soup, keys, a.bbox)
     if len(meshes) == 1:
         raise SystemExit("no collision triangles found (check --xml-dir and --bbox)")

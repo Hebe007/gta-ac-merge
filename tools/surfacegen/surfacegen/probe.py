@@ -42,9 +42,11 @@ def report(s: bulk.Soup, x: float, y: float, radius: float = 8.0, check_filters:
     """Print the collision files covering GTA (x, y) and the surfaces there."""
     lo, hi = bulk.file_boxes(s)
     interiors = set(bulk.interior_files(s)) if check_filters else set()
-    cover = np.nonzero((lo[:, 0] <= x) & (hi[:, 0] >= x) & (lo[:, 1] <= y) & (hi[:, 1] >= y))[0]
+    # every file whose area reaches within the radius (not only files whose box contains the spot)
+    cover = np.nonzero((lo[:, 0] - radius <= x) & (hi[:, 0] + radius >= x)
+                       & (lo[:, 1] - radius <= y) & (hi[:, 1] + radius >= y))[0]
     where = f"at GTA {x:.1f}, {y:.1f}" + (f" (car was at z {z:.1f})" if z is not None else "")
-    print(f"{where}: {len(cover)} collision file(s) cover this spot")
+    print(f"{where}: {len(cover)} collision file(s) within {radius:.0f} m")
     s = s.subset(np.isin(s.file, cover))
     hits = surfaces_at(s, x, y)
     if hits:
@@ -61,6 +63,8 @@ def report(s: bulk.Soup, x: float, y: float, radius: float = 8.0, check_filters:
     inside_map = bulk.in_bounds(s, bulk.GTA_MAP_BOUNDS, -20, 1500)
     for f in cover:
         mine = near & (s.file == f)
+        if not mine.any() and not ((lo[f, 0] <= x <= hi[f, 0]) and (lo[f, 1] <= y <= hi[f, 1])):
+            continue  # nothing of it within the radius, and its box doesn't contain the spot
         notes = []
         if f in interiors:
             notes.append("LEFT OUT as interior")
@@ -68,6 +72,10 @@ def report(s: bulk.Soup, x: float, y: float, radius: float = 8.0, check_filters:
             notes.append("LEFT OUT by map bounds")
         zs = v[mine][:, :, 2]
         zinfo = f"z {zs.min():.1f}..{zs.max():.1f}" if mine.any() else "nothing within radius"
+        if mine.any():
+            c = v[mine].mean(1)
+            d = np.hypot(c[:, 0] - x, c[:, 1] - y)
+            zinfo += f", closest {d.min():.1f} m away"
         print(f"  {s.files[f]:40s} {int((s.file == f).sum()):>8} triangles  near: {int(mine.sum()):>5} ({zinfo})"
               + (f"  <- {', '.join(notes)}" if notes else ""))
         mats = {}
