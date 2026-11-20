@@ -201,9 +201,9 @@ bool ShvGame::takeHit(int v, Hit& out) {
                  (nat::isEntityAVehicle(other) || nat::isEntityAPed(other));
   if (!dynamic) {
     Vector3 c = nat::getEntityCoords(v);
-    Vehicle near = nat::getClosestVehicle(c.x, c.y, c.z, 8.f, 0, 70);
-    other = near;
-    dynamic = near && near != v && nat::isEntityTouchingEntity(v, near);
+    Vehicle closest = nat::getClosestVehicle(c.x, c.y, c.z, 8.f, 0, 70);
+    other = closest;
+    dynamic = closest && closest != v && nat::isEntityTouchingEntity(v, closest);
   }
   if (!dynamic) return false;
   dynamicHit_ = true;
