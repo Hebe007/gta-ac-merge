@@ -27,6 +27,7 @@ class Game {
   // Throttle and brake 0..1 as player input: GTA revs its engine (rev counter) and lights the brake lights.
   virtual void setPedals(int vehicle, float gas, float brake) = 0;
   virtual Quat rotation(int vehicle) = 0;
+  virtual Vec3 forward(int vehicle) = 0;  // the way the car points, GTA space
   // Make an existing car (the one you're in) ready to follow AC / give it back afterwards.
   virtual void prepare(int vehicle) = 0;
   virtual void release(int vehicle) = 0;

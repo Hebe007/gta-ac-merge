@@ -109,7 +109,10 @@ void Puppet::requestTeleport(int veh, volatile LinkCommand* cmd, double now) {
   float gz;
   float z = g_.groundZ({p.x, p.y, p.z + 1.f}, gz) && gz <= p.z + 1.f && gz > p.z - 3.f ? gz : p.z - 0.5f;
   Vec3 acPos = gtaToAc({p.x, p.y, z + 1.f});  // drop it from 1 m above GTA's ground
-  Vec3 acFwd = gtaToAc(rotate(g_.rotation(veh), {0, 1, 0}));
+  Vec3 f = g_.forward(veh);
+  float len = std::sqrt(f.x * f.x + f.y * f.y);
+  Vec3 level = len > 1e-3f ? Vec3{f.x / len, f.y / len, 0} : Vec3{0, 1, 0};  // wheels down
+  Vec3 acFwd = gtaToAc(level);
   cmd_ = cmd;
   sendTeleport(acPos, acFwd);
   pendingVeh_ = veh;

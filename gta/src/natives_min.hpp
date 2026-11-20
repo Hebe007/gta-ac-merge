@@ -71,4 +71,5 @@ inline void getEntityQuaternion(Entity e, float* x, float* y, float* z, float* w
 inline float getEntitySpeed(Entity e) { return invoke<float>(0xD5037BA82E12416F, e); }
 inline BOOL getIsVehicleEngineRunning(Vehicle v) { return invoke<BOOL>(0xAE31E7DF9B5B132E, v); }
 inline void setVehicleForwardSpeed(Vehicle v, float s) { invoke<Void>(0xAB54A438726D25D5, v, s); }
+inline Vector3 getEntityForwardVector(Entity e) { return invoke<Vector3>(0x0A794A5A57F8DF91, e); }
 }  // namespace nat

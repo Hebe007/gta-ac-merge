@@ -176,3 +176,8 @@ bool ShvGame::resetKeyPressed() {
   resetWasDown_ = down;
   return pressed;
 }
+
+Vec3 ShvGame::forward(int v) {
+  Vector3 f = nat::getEntityForwardVector(v);
+  return {f.x, f.y, f.z};
+}

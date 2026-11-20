@@ -43,6 +43,8 @@ struct FakeGame : Game {
   void setSteer(int, float b) override { steer = b; }
   void setPedals(int, float g, float b) override { gas = g; brake = b; }
   Quat rotation(int) override { return rot; }
+  Vec3 fwd{0, 1, 0};
+  Vec3 forward(int) override { return fwd; }
   void prepare(int v) override { prepared.push_back(v); }
   void release(int v) override { released.push_back(v); }
   bool diag = false;
@@ -427,4 +429,15 @@ TEST_CASE("stuck under the map for over a second resets by itself (unless auto_r
     CHECK(cmd.teleportId == (autoReset ? 1u : 0u));
     if (autoReset) CHECK(cmd.pos[1] == doctest::Approx(31));  // onto the ground above, + 1 m
   }
+}
+
+TEST_CASE("F8 in a car sends the GTA car's own heading (here: facing east), level") {
+  shm = {}; cmd = {}; FakeGame g; Puppet p(g, "zr350");
+  g.alive.push_back(42); g.inVehicle = 42; g.pos = {100, 200, 30};
+  g.fwd = {0.97f, 0, 0.24f};  // east, nose slightly up
+  acWrite({0, 30, 0});
+  g.key = true; p.tick(1.0, &shm, "", &cmd);
+  CHECK(cmd.fwd[0] == doctest::Approx(1).epsilon(0.01));  // GTA east = AC +X
+  CHECK(cmd.fwd[1] == doctest::Approx(0));                // level
+  CHECK(cmd.fwd[2] == doctest::Approx(0));
 }
