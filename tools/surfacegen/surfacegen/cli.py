@@ -60,24 +60,31 @@ def source_rank(folder: str) -> tuple:
 
 def pick_sources(xml_dir: Path, prefer: str = "normal") -> list[Path]:
     """All exported .xml files under xml_dir (directly, or in one sub-folder per source - see source_rank).
-    The highest-ranked copy of each file name wins. GTA has a normal ("mover") and a detailed "hi@" collision file
-    for most blocks; cars drive on the normal one, so hi@ is used only where no normal file exists."""
+    The highest-ranked copy of each file name wins. Most blocks have a normal file plus "hi@" and "ma@" variants:
+      normal - use the normal file; hi@ only where no normal one exists; ma@ never (the default)
+      hi     - prefer hi@ over normal;  ma - prefer ma@ over normal;  all - every variant (experiments)"""
     best: dict[str, tuple[tuple, Path]] = {}
     folders = [(source_rank("base"), xml_dir)] + [(source_rank(d.name), d) for d in xml_dir.iterdir() if d.is_dir()]
     for rank, folder in folders:
         for p in folder.iterdir():
             name = p.name.lower()
-            if name.startswith("ma@"):
+            if name.startswith("ma@") and prefer not in ("ma", "all"):
                 continue  # another special-purpose collision layer; cars drive on the normal files
             if p.is_file() and name.endswith(".xml") and (name not in best or rank > best[name][0]):
                 best[name] = (rank, p)
+    if prefer == "all":
+        return sorted((p for _, p in best.values()), key=lambda p: p.name.lower())
     keep = []
     for name, (_, p) in best.items():
-        is_hi = name.startswith("hi@")
-        twin = name[3:] if is_hi else "hi@" + name
-        if twin in best and (is_hi == (prefer == "normal")):
-            continue
-        keep.append(p)
+        base = name[3:] if name[:3] in ("hi@", "ma@") else name
+        variant = name[:3] if name[:3] in ("hi@", "ma@") else ""
+        if prefer == "normal":
+            wanted = "" if base in best else ("hi@" if "hi@" + base in best else variant)
+        else:
+            want = prefer + "@"
+            wanted = want if want + base in best else ("" if base in best else variant)
+        if variant == wanted:
+            keep.append(p)
     return sorted(keep, key=lambda p: p.name.lower())
 
 
@@ -160,7 +167,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--materials-toml", type=Path)
     ap.add_argument("--bbox", type=_floats(4))
     ap.add_argument("--start", type=_floats(4), required=True)
-    ap.add_argument("--prefer", choices=("normal", "hi"), default="normal",
+    ap.add_argument("--prefer", choices=("normal", "hi", "ma", "all"), default="normal",
                     help="which collision to use when both a normal and an hi@ file exist")
     ap.add_argument("--weld", type=float, default=0.05,
                     help="snap vertices closer than this many metres together to close cracks (0 = off)")

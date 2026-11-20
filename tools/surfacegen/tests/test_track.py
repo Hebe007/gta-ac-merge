@@ -188,3 +188,12 @@ def test_interior_like_files_are_detected():
     assert not looks_like_interior(city_block_near_origin)
     assert not looks_like_interior(far_block)
     assert not looks_like_interior([])
+
+
+def test_prefer_ma_uses_ma_files(tmp_path):
+    from surfacegen.cli import pick_sources
+    for f in ["base/id1_24_0.ybn.xml", "base/ma@id1_24_0.ybn.xml", "base/hi@id1_24_0.ybn.xml", "base/id1_25_0.ybn.xml"]:
+        _touch(tmp_path / f)
+    assert [p.name for p in pick_sources(tmp_path, prefer="ma")] == ["id1_25_0.ybn.xml", "ma@id1_24_0.ybn.xml"]
+    assert [p.name for p in pick_sources(tmp_path, prefer="all")] == ["hi@id1_24_0.ybn.xml", "id1_24_0.ybn.xml",
+                                                                       "id1_25_0.ybn.xml", "ma@id1_24_0.ybn.xml"]
