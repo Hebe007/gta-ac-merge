@@ -176,6 +176,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--double-sided", action="store_true", help="add every triangle with both windings")
     ap.add_argument("--ymap-dir", type=Path,
                     help="CodeWalker XML of .ymap files (one sub-folder per source): places interiors such as tunnels")
+    ap.add_argument("--interior-rotation", choices=("as-is", "inverse"), default="as-is",
+                    help="experiment: rotate placed interiors the other way (if tunnels come out twisted)")
     ap.add_argument("--map-bounds", choices=("gta", "none"), default="gta",
                     help="gta = keep Los Santos + Blaine County only (drops North Yankton and far-away DLC sets)")
     ap.add_argument("--zmin", type=float, default=-20.0, help="drop collision below this height (seabed)")
@@ -218,6 +220,8 @@ def _run_bulk(a) -> None:
         from .ymap_xml import read_mlo_instances
         ymaps = pick_sources(a.ymap_dir)
         instances = [i for y in ymaps for i in read_mlo_instances(y)]
+        if a.interior_rotation == "inverse":
+            instances = [(n, p, (-q[0], -q[1], -q[2], q[3])) for n, p, q in instances]
         soup, placed, missing = bulk.place_interiors(soup, instances)
         logging.info("placed %d interiors from %d map files (%d interior types have no collision file)",
                      placed, len(ymaps), len(missing))

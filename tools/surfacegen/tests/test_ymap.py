@@ -43,3 +43,20 @@ def test_negative_coordinates_are_accepted():
     from surfacegen.cli import fix_negative_values
     assert fix_negative_values(["--at", "-2595,3041", "--x"]) == ["--at=-2595,3041", "--x"]
     assert fix_negative_values(["--start", "1,2,3,4"]) == ["--start", "1,2,3,4"]
+
+
+def test_inverse_rotation_option(tmp_path, capsys):
+    from surfacegen import cli
+    xml = tmp_path / "xml"
+    xml.mkdir()
+    (xml / "test_tunnel1.ybn.xml").write_text((FIX / "small.ybn.xml").read_text())
+    ymap = tmp_path / "ymap"
+    ymap.mkdir()
+    (ymap / "t.ymap.xml").write_text((FIX / "tunnel.ymap.xml").read_text())
+    # the fixture's road triangle (x 110..114, y 200..204 locally) lands at x -2600-(200..204), y 2950+(110..114)
+    # rotated +90 deg about Z, and at x -2600+(200..204), y 2950-(110..114) rotated the other way
+    for rot, spot in (("as-is", "-2801,3061"), ("inverse", "-2399,2839")):
+        cli.main(["--no-cache", "--xml-dir", str(xml), "--ymap-dir", str(ymap), "--out", str(tmp_path / rot), "--layout", "t",
+                  "--start", "-2600,2950,20,0", "--interior-rotation", rot, "--probe", spot])
+        out = capsys.readouterr().out
+        assert "surfaces exactly at this spot" in out, rot
