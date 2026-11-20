@@ -82,3 +82,14 @@ Tunnels and other interiors keep their collision in their own coordinates; the `
    collision (`base`, `update`, `dlc`, `patchdayNNng`, `mods`).
 2. Generate with `--ymap-dir ..\..\work\ymap`. The log says how many interiors it placed.
 3. Drive through a tunnel to check. (The probe shows the raw cache, without placed interiors.)
+
+## Collision straight from the game files (GtaExtract) - replaces the CodeWalker exports
+GtaExtract reads GTA V's files with CodeWalker's library and writes all collision a car can touch, already placed:
+map collision, interiors (tunnels, underpasses) and placed objects (freeway pieces, trees, ...). The newest
+DLC/patch version of every file is used automatically.
+1. Once: Visual Studio Installer -> Modify -> tick **.NET desktop development**.
+2. Build: `powershell -ExecutionPolicy Bypass -File .\tools\build_extractor.ps1`
+3. Extract: `tools\gtaextract\bin\Release\net8.0\GtaExtract.exe --gta "C:\Program Files\Epic Games\GTAVEnhanced" --out work\gta_collision.gtac`
+   (`--fragments` also adds breakable objects such as lamp posts and fences; `--no-objects` leaves placed objects out)
+4. Generate: `python -m surfacegen --collision ..\..\work\gta_collision.gtac --out <AC track folder> --layout full --start ...`
+   (no `--xml-dir`, `--ymap-dir` or `--materials-dat` needed)

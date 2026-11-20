@@ -456,3 +456,31 @@ def ramp_kerbs(s: Soup, keys: np.ndarray, step_height: float, ratio: float) -> t
     out = Soup(np.concatenate([s.verts, new_v]), np.concatenate([s.tris, new_t]), np.concatenate([s.mat, s.mat[pick]]),
                np.concatenate([s.file, s.file[pick]]), s.names, s.files)
     return out, np.concatenate([keys, keys[pick]]), int(pick.sum())
+
+
+# ---------- .gtac (from tools/gtaextract) ----------
+
+def load_gtac(path: Path) -> Soup:
+    """World-space collision written by GtaExtract (format described in tools/gtaextract/GtacWriter.cs)."""
+    with open(path, "rb") as f:
+        head = f.read(28)
+        if len(head) < 28 or head[:8] != b"GTACOL1\0":
+            raise SystemExit(f"{path} is not a GtaExtract collision file")
+        version, nv, nt, nn, nf = struct.unpack("<5I", head[8:])
+        if version != 1:
+            raise SystemExit(f"{path}: unsupported .gtac version {version}")
+        verts = np.fromfile(f, "<f4", nv * 3).reshape(-1, 3)
+        tris = np.fromfile(f, "<u4", nt * 3).reshape(-1, 3)
+        mat = np.fromfile(f, "<u2", nt)
+        fid = np.fromfile(f, "<u4", nt)
+
+        def strings(n):
+            out = []
+            for _ in range(n):
+                (ln,) = struct.unpack("<H", f.read(2))
+                out.append(f.read(ln).decode("utf-8", "replace"))
+            return out
+
+        names, files = strings(nn), strings(nf)
+    return Soup(verts.astype(np.float32), tris.astype(np.uint32), mat.astype(np.uint16), fid.astype(np.uint32),
+                names, files)

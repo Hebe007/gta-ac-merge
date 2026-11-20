@@ -160,7 +160,9 @@ def ground_under(tris, x: float, y: float, below: float) -> float | None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="surfacegen")
-    ap.add_argument("--xml-dir", type=Path, required=True)
+    ap.add_argument("--xml-dir", type=Path, help="CodeWalker XML exports (one sub-folder per source)")
+    ap.add_argument("--collision", type=Path,
+                    help="GtaExtract output (.gtac): everything already placed; replaces --xml-dir and --ymap-dir")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--layout", required=True)
     ap.add_argument("--materials-dat", type=Path)
@@ -201,6 +203,10 @@ def main(argv: list[str] | None = None) -> None:
     a = ap.parse_args(fix_negative_values(sys.argv[1:] if argv is None else argv))
     # stdout, not stderr: PowerShell turns captured stderr lines into red "NativeCommandError" noise
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout)
+    if not a.xml_dir and not a.collision:
+        ap.error("give --collision (from GtaExtract) or --xml-dir")
+    if a.collision and a.engine == "python":
+        ap.error("--collision needs the bulk engine")
     if a.engine == "bulk":
         _run_bulk(a)
     else:
@@ -210,6 +216,12 @@ def main(argv: list[str] | None = None) -> None:
 def _run_bulk(a) -> None:
     from . import bulk
 
+    if a.collision:
+        logging.info("reading %s", a.collision)
+        soup = bulk.load_gtac(a.collision)
+        logging.info("%d triangles from %d sources (interiors and objects already placed)", len(soup.tris), len(soup.files))
+        _build_from_soup(a, soup)
+        return
     names = read_materials_dat(a.materials_dat) if a.materials_dat else None
     files = pick_sources(a.xml_dir, a.prefer)
     cache = None if a.no_cache else (a.cache or a.xml_dir.parent / f"surfacegen_cache_{a.xml_dir.name}.npz")
@@ -233,6 +245,12 @@ def _run_bulk(a) -> None:
         soup, placed, missing = bulk.place_interiors(soup, instances)
         logging.info("placed %d interiors from %d map files (%d interior types have no collision file)",
                      placed, len(ymaps), len(missing))
+    _build_from_soup(a, soup)
+
+
+def _build_from_soup(a, soup) -> None:
+    from . import bulk
+
     if not a.keep_interiors:
         bad = bulk.interior_files(soup)
         placed_names = {f.split("@")[0] for f in soup.files if "@" in f}

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Reads GTA V's map, interior and object collision with CodeWalker.Core and writes it, placed in the world,
+       to one .gtac file for tools/surfacegen. CodeWalker is cloned into third_party/CodeWalker by
+       tools/build_extractor.ps1 (not committed). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../third_party/CodeWalker/CodeWalker.Core/CodeWalker.Core.csproj" />
+  </ItemGroup>
+</Project>
