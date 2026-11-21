@@ -5,6 +5,7 @@
 #include "game_shv.hpp"
 #include "main.h"
 #include "puppet.hpp"
+#include "race_shv.hpp"
 #include "shm_win.hpp"
 
 static HMODULE g_module = nullptr;
@@ -51,6 +52,28 @@ static void ScriptMain() {
   po.hitStrength = std::strtof(iniValue("hit_strength", "1").c_str(), nullptr);
   po.hitSideways = std::strtof(iniValue("hit_sideways", "1.5").c_str(), nullptr);
   Puppet puppet(game, iniValue("model", "sultan"), po);
+  RaceOptions ro;
+  ro.opponents = std::atoi(iniValue("race_opponents", "3").c_str());
+  if (ro.opponents < 1) ro.opponents = 1;
+  if (ro.opponents > 7) ro.opponents = 7;
+  std::string cars = iniValue("race_cars", "");
+  if (!cars.empty()) {
+    ro.cars.clear();
+    size_t at = 0;
+    while (at <= cars.size()) {
+      size_t comma = cars.find(',', at);
+      std::string c = cars.substr(at, comma == std::string::npos ? std::string::npos : comma - at);
+      c.erase(0, c.find_first_not_of(" \t"));
+      c.erase(c.find_last_not_of(" \t") + 1);
+      if (!c.empty()) ro.cars.push_back(c);
+      if (comma == std::string::npos) break;
+      at = comma + 1;
+    }
+    if (ro.cars.empty()) ro.cars = RaceOptions{}.cars;
+  }
+  ro.maxSpeed = std::strtof(iniValue("race_top_speed_kmh", "290").c_str(), nullptr) / 3.6f;
+  ShvRaceWorld raceWorld;
+  Race race(raceWorld, ro);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);
   while (true) {
@@ -59,6 +82,7 @@ static void ScriptMain() {
     double now = static_cast<double>(t.QuadPart) / static_cast<double>(freq.QuadPart);
     const volatile LinkState* raw = shm.get(now);
     puppet.tick(now, raw, shm.status(), cmd.get(), hits.get());
+    race.tick(now);
     scriptWait(0);
   }
 }

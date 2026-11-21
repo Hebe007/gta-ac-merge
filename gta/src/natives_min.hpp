@@ -84,4 +84,37 @@ inline float getEntitySpeed(Entity e) { return invoke<float>(0xD5037BA82E12416F,
 inline BOOL getIsVehicleEngineRunning(Vehicle v) { return invoke<BOOL>(0xAE31E7DF9B5B132E, v); }
 inline void setVehicleForwardSpeed(Vehicle v, float s) { invoke<Void>(0xAB54A438726D25D5, v, s); }
 inline Vector3 getEntityForwardVector(Entity e) { return invoke<Vector3>(0x0A794A5A57F8DF91, e); }
+// races and police (race_shv.cpp)
+inline int getPlayerWantedLevel(Player p) { return invoke<int>(0xE28E54788CE8F12D, p); }
+inline void setPlayerWantedLevel(Player p, int level) { invoke<Void>(0x39FF19C64EF7DA5B, p, level, FALSE); }
+inline void setPlayerWantedLevelNow(Player p) { invoke<Void>(0xE0A7D1E497FFCD6F, p, FALSE); }
+inline void clearPlayerWantedLevel(Player p) { invoke<Void>(0xB302540597885499, p); }
+inline BOOL isWaypointActive() { return invoke<BOOL>(0x1DD1F58F493F1DA5); }
+inline Blip getFirstBlipInfoId(int sprite) { return invoke<Blip>(0x1BEDE233E6CD2A1F, sprite); }
+inline Vector3 getBlipInfoIdCoord(Blip b) { return invoke<Vector3>(0xFA7C7F0AADF25D09, b); }
+inline float getEntityHeading(Entity e) { return invoke<float>(0xE83D4F9BA2A38914, e); }
+inline Ped createRandomPedAsDriver(Vehicle v) { return invoke<Ped>(0x9B62392B474F44A0, v, TRUE); }
+inline Ped getPedInVehicleSeat(Vehicle v, int seat) { return invoke<Ped>(0xBB40DD2270B65366, v, seat, FALSE); }
+inline void taskVehicleDriveToCoordLongrange(Ped p, Vehicle v, float x, float y, float z, float speed, int style,
+                                             float stopRange) {
+  invoke<Void>(0x158BB33F920D360C, p, v, x, y, z, speed, style, stopRange);
+}
+inline void taskVehicleDriveWander(Ped p, Vehicle v, float speed, int style) { invoke<Void>(0x480142959D337D00, p, v, speed, style); }
+inline void setDriverAbility(Ped p, float a) { invoke<Void>(0xB195FFA8042FC5C3, p, a); }
+inline void setDriverAggressiveness(Ped p, float a) { invoke<Void>(0xA731F608CA104E3C, p, a); }
+inline void setDriverRacingModifier(Ped p, float a) { invoke<Void>(0xDED5AF5A0EA4B297, p, a); }
+inline void setBlockingOfNonTemporaryEvents(Ped p, BOOL on) { invoke<Void>(0x9F8AA94D6D97DBF4, p, on); }
+inline void setPedKeepTask(Ped p, BOOL on) { invoke<Void>(0x971D38760FBC02EF, p, on); }
+inline void deletePed(Ped* p) { invoke<Void>(0x9614299DCB53E54B, p); }
+inline void setPedAsNoLongerNeeded(Ped* p) { invoke<Void>(0x2595DD4236549CE3, p); }
+inline void setVehicleAsNoLongerNeeded(Vehicle* v) { invoke<Void>(0x629BFA74418D6239, v); }
+inline Blip addBlipForCoord(float x, float y, float z) { return invoke<Blip>(0x5A039BB0BCA604B6, x, y, z); }
+inline Blip addBlipForEntity(Entity e) { return invoke<Blip>(0x5CDE92C702A8FCE7, e); }
+inline void setBlipRoute(Blip b, BOOL on) { invoke<Void>(0x4F7D8A9BFB0B43E9, b, on); }
+inline void setBlipColour(Blip b, int c) { invoke<Void>(0x03D7FB09E75D6B7E, b, c); }
+inline void removeBlip(Blip* b) { invoke<Void>(0x86A652570E5F25DD, b); }
+inline void drawMarker(int type, float x, float y, float z, float sx, float sy, float sz, int r, int g, int b, int a) {
+  invoke<Void>(0x28477EC23D892089, type, x, y, z, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, sx, sy, sz, r, g, b, a, FALSE, FALSE, 2,
+               FALSE, static_cast<const char*>(nullptr), static_cast<const char*>(nullptr), FALSE);
+}
 }  // namespace nat

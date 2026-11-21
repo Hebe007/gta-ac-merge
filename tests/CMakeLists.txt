@@ -1,5 +1,5 @@
 find_package(Threads REQUIRED)
-foreach(t test_link_math test_seqlock test_link_client test_puppet)
+foreach(t test_link_math test_seqlock test_link_client test_puppet test_race)
   add_executable(${t} ${t}.cpp)
   target_link_libraries(${t} gtalogic Threads::Threads)
   add_test(NAME ${t} COMMAND ${t})

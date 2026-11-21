@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(linkcommon common/link_math.cpp)
 target_include_directories(linkcommon PUBLIC common third_party)
-add_library(gtalogic gta/src/link_client.cpp gta/src/puppet.cpp)
+add_library(gtalogic gta/src/link_client.cpp gta/src/puppet.cpp gta/src/race.cpp)
 target_include_directories(gtalogic PUBLIC gta/src)
 target_link_libraries(gtalogic PUBLIC linkcommon)
 # ScriptHookV SDK: unzip it into Scripthook/ (any sub-folder layout). Not committed (Rockstar/Alexander Blade licence).
