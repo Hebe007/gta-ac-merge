@@ -7,16 +7,17 @@ import linkpeek  # noqa: E402
 
 
 def test_decode_matches_layout():
-    assert linkpeek.SIZE == 136
-    vals = [0x47544143, 1, 42, 3, 1, 2, 3, 0, 0, -1, 0, 1, 0, 5, 0, 0, 0, 0, 0, 9, 9, 9, 9, 12.5, 4200, 88, 1300, 4, 0.31, 450, 0.6, 0.1, 7, 1]
+    assert linkpeek.SIZE == 140
+    vals = [0x47544143, 1, 42, 3, 1, 2, 3, 0, 0, -1, 0, 1, 0, 5, 0, 0, 0, 0, 0, 9, 9, 9, 9, 12.5, 4200, 88, 1300, 4, 0.31, 450, 0.6, 0.1, 7, 1, 4]
     d = linkpeek.decode(struct.pack(linkpeek.FMT, *vals))
     assert d["magic_ok"] and d["seq"] == 42 and d["resets"] == 3
     assert d["pos"] == (1, 2, 3) and d["fwd"] == (0, 0, -1)
     assert d["rpm"] == 4200 and d["speed_kmh"] == 88 and d["mass"] == 1300 and d["gear"] == 4
     assert abs(d["ride_height"] - 0.31) < 1e-6
+    assert d["tyres_blown"] == 4
 
 
 def test_raw_lines_show_every_slot():
-    buf = struct.pack("<34I", *range(34))
+    buf = struct.pack("<35I", *range(35))
     lines = linkpeek.raw_lines(buf)
-    assert len(lines) == 34 and "slot  5  int            5" in lines[5]
+    assert len(lines) == 35 and "slot  5  int            5" in lines[5]
