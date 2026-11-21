@@ -33,7 +33,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
       g_.disableVehicleControls();
       Vec3 cur = g_.position(veh_);
       if (haveLast_ && dist(cur, last_.pos) > kTeleportUnlinkMeters) {
-        unlink("GTA link off: the car was teleported (press F8 to link again)", now);
+        unlink("GTA link off: the car was teleported (press " + opt_.linkKey + " to link again)", now);
       } else if (f.connected && f.fresh) {
         if (calPending_) calPending_ = now < calUntil_ && !calibrate(f, now);
         last_ = f.pose;
@@ -207,7 +207,7 @@ void Puppet::resetHere(double now, bool off) {
   if (sendTeleport(gtaToAc({p.x, p.y, gz + 1.f}), gtaToAc(fwd))) {
     lastReset_ = now;
     hitQuietUntil_ = now + 1.0;
-    say(off ? "Fell through - put back on the road here" : "Car reset here (F9)", now);
+    say(off ? "Fell through - put back on the road here" : "Car reset here (" + opt_.resetKey + ")", now);
   }
 }
 
@@ -258,7 +258,7 @@ void Puppet::adopt(const LinkFrame& f, double now, const std::string& why) {
   hitQuietUntil_ = now + 1.0;  // the car jumping to AC's position is not a hit
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
-  if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+  if (calPending_) say("GTA link on (" + opt_.linkKey + " to turn off) - measuring height...", now);
   if (!why.empty()) say(why + ". " + msg_, now);
 }
 
@@ -285,7 +285,7 @@ void Puppet::link(const LinkFrame& f, double now, const std::string& shmStatus) 
   hitQuietUntil_ = now + 1.0;  // the car jumping to AC's position is not a hit
   calPending_ = !calibrate(f, now);
   calUntil_ = now + 5.0;
-  if (calPending_) say("GTA link on (F8 to turn off) - measuring height...", now);
+  if (calPending_) say("GTA link on (" + opt_.linkKey + " to turn off) - measuring height...", now);
 }
 
 bool Puppet::offMap(Vec3 p) {
@@ -307,8 +307,8 @@ bool Puppet::calibrate(const LinkFrame& f, double now) {
   }
   lift_ = (gtaH_ > 0 ? gtaH_ - acH : 0.f) + opt_.heightTrim;
   char m[256];
-  std::snprintf(m, sizeof m, "GTA link on (F8 to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m  [link v%u, built %s %s]",
-                acH, gtaH_, lift_, LINK_VERSION, __DATE__, __TIME__);
+  std::snprintf(m, sizeof m, "GTA link on (%s to turn off) - height AC %.2f m, GTA %.2f m, lift %+.2f m  [link v%u, built %s %s]",
+                opt_.linkKey.c_str(), acH, gtaH_, lift_, LINK_VERSION, __DATE__, __TIME__);
   say(m, now);
   return true;
 }

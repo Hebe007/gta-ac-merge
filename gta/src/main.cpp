@@ -5,6 +5,7 @@
 #include "game_shv.hpp"
 #include "main.h"
 #include "puppet.hpp"
+#include "keys.hpp"
 #include "race_shv.hpp"
 #include "shm_win.hpp"
 
@@ -27,6 +28,15 @@ static std::string iniValue(const char* key, const char* fallback) {
   return buf;
 }
 
+// A key from gta_link.ini (key_link=F8 ...); the default when missing or not a key name.
+static int iniKey(const char* key, const char* fallback, std::string* name = nullptr) {
+  std::string v = iniValue(key, fallback);
+  int code = keyCode(v);
+  if (!code) { v = fallback; code = keyCode(fallback); }
+  if (name) *name = v;
+  return code;
+}
+
 static void ScriptMain() {
   ShvOptions opt;
   opt.gtaDamage = iniValue("gta_damage", "0") == "1";
@@ -35,6 +45,10 @@ static void ScriptMain() {
   opt.iniFound = GetFileAttributesA(opt.iniPath.c_str()) != INVALID_FILE_ATTRIBUTES;
   opt.engineAudio = iniValue("engine_audio", "voltic");
   opt.tyresBurst = iniValue("tyres_burst", "1") == "1";
+  std::string linkName, resetName;
+  opt.keyLink = iniKey("key_link", "F8", &linkName);
+  opt.keyDiag = iniKey("key_diag", "F7");
+  opt.keyReset = iniKey("key_reset", "F9", &resetName);
   ShvGame game(opt);
   game.holesFile = besideAsi("gta_link_holes.txt");
   game.stuckFile = besideAsi("gta_link_stuck.txt");
@@ -51,6 +65,8 @@ static void ScriptMain() {
   po.steerLead = std::strtof(iniValue("steer_lead", "0.06").c_str(), nullptr);
   po.hitStrength = std::strtof(iniValue("hit_strength", "1").c_str(), nullptr);
   po.hitSideways = std::strtof(iniValue("hit_sideways", "1.5").c_str(), nullptr);
+  po.linkKey = linkName;
+  po.resetKey = resetName;
   Puppet puppet(game, iniValue("model", "sultan"), po);
   RaceOptions ro;
   ro.opponents = std::atoi(iniValue("race_opponents", "3").c_str());
@@ -73,6 +89,14 @@ static void ScriptMain() {
   }
   ro.maxSpeed = std::strtof(iniValue("race_top_speed_kmh", "290").c_str(), nullptr) / 3.6f;
   ShvRaceWorld raceWorld;
+  raceWorld.keys[RaceWorld::kPolice] = iniKey("key_police", "F10", &ro.policeKey);
+  raceWorld.keys[RaceWorld::kRace] = iniKey("key_race", "F11", &ro.raceKey);
+  raceWorld.keys[RaceWorld::kUp] = iniKey("key_menu_up", "UP");
+  raceWorld.keys[RaceWorld::kDown] = iniKey("key_menu_down", "DOWN");
+  raceWorld.keys[RaceWorld::kLeft] = iniKey("key_menu_left", "LEFT");
+  raceWorld.keys[RaceWorld::kRight] = iniKey("key_menu_right", "RIGHT");
+  raceWorld.keys[RaceWorld::kEnter] = iniKey("key_menu_enter", "ENTER");
+  raceWorld.resultsFile = besideAsi("gta_race_results.txt");
   Race race(raceWorld, ro);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);

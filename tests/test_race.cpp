@@ -31,6 +31,8 @@ struct FakeWorld : RaceWorld {
   void finishPoint(Vec3, bool show) override { blip = show; }
   void drawFinish(Vec3) override {}
   void text(float, float, const std::string& s, float) override { texts.push_back(s); }
+  std::vector<std::string> saved;
+  void saveResults(const std::string& s) override { saved.push_back(s); }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
@@ -89,6 +91,9 @@ TEST_CASE("finishing: positions, results, then the AI drive off") {
   CHECK(w.shown("RESULTS"));
   CHECK(w.shown("2.  You"));
   CHECK(w.shown("DNF"));
+  REQUIRE(w.saved.size() == 1);
+  CHECK(w.saved[0].find("2. You 0:35.9") != std::string::npos);
+  CHECK(w.saved[0].find("1.0 km") != std::string::npos);
   r.tick(60);  // results shown long enough
   CHECK(r.state() == Race::State::Idle);
   CHECK(w.released.size() == 2);
@@ -108,4 +113,15 @@ TEST_CASE("F11 during a race cancels it and removes the opponents") {
 TEST_CASE("raceTime") {
   CHECK(raceTime(83.44) == "1:23.4");
   CHECK(raceTime(-1) == "DNF");
+}
+#include "keys.hpp"
+TEST_CASE("key names from gta_link.ini") {
+  CHECK(keyCode("F10") == 0x79);
+  CHECK(keyCode(" f8 ") == 0x77);
+  CHECK(keyCode("NUM5") == 0x65);
+  CHECK(keyCode("pageup") == 0x21);
+  CHECK(keyCode("K") == 'K');
+  CHECK(keyCode("120") == 120);
+  CHECK(keyCode("nonsense") == 0);
+  CHECK(keyCode("F25") == 0);
 }

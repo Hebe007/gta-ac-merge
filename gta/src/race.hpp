@@ -28,6 +28,7 @@ class RaceWorld {
   virtual void finishPoint(Vec3 pos, bool show) = 0;    // map blip with route; show=false removes it
   virtual void drawFinish(Vec3 pos) = 0;                // marker in the world, every frame
   virtual void text(float x, float y, const std::string& s, float scale = 0.45f) = 0;
+  virtual void saveResults(const std::string& oneLine) = 0;  // appended to the results file with the date
 };
 
 struct RaceOptions {
@@ -36,6 +37,7 @@ struct RaceOptions {
   float maxSpeed = 80.f;               // m/s the AI may go
   int drivingStyle = 1074528293;       // GTA driving style flags: "rushed" (overtakes, runs lights)
   float finishRadius = 15.f;
+  std::string policeKey = "F10", raceKey = "F11";  // names for the on-screen hints
 };
 
 class Race {
@@ -65,6 +67,7 @@ class Race {
   Vec3 finish_{};
   std::vector<Racer> racers_;
   double startAt_ = 0, playerFinish_ = -1, resultsUntil_ = 0;
+  float raceKm_ = 0;
   std::string msg_;
   double msgUntil_ = 0;
 };

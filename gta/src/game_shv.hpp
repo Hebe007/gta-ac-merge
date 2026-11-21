@@ -4,7 +4,8 @@
 
 struct ShvOptions {
   bool gtaDamage = false;
-  bool tyresBurst = true;  // GTA may burst the tyres (spike strips, shots); the AC app blows the same ones  // let GTA damage the car (off: AC is in charge; GTA-only objects can't wreck it)
+  bool tyresBurst = true;
+  int keyLink = 0x77, keyDiag = 0x76, keyReset = 0x78;  // F8, F7, F9 (key_link, key_diag, key_reset)  // GTA may burst the tyres (spike strips, shots); the AC app blows the same ones  // let GTA damage the car (off: AC is in charge; GTA-only objects can't wreck it)
   bool frozen = false;     // true: GTA physics never moves the car (no flips or pushes), but wheels/speedo don't move
   // Engine sound of this GTA car model, so the engine can run (dashboard, speedometer) almost silently.
   // "off" = engine off as before (no dashboard).

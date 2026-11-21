@@ -97,7 +97,7 @@ void ShvGame::drawText(float x, float y, const std::string& text) {
 }
 
 bool ShvGame::linkKeyPressed() {
-  bool down = (GetAsyncKeyState(VK_F8) & 0x8000) != 0;
+  bool down = (GetAsyncKeyState(opt_.keyLink) & 0x8000) != 0;
   bool pressed = down && !keyWasDown_;
   keyWasDown_ = down;
   return pressed;
@@ -168,7 +168,7 @@ void ShvGame::release(int v) {
 }
 
 bool ShvGame::diagKeyPressed() {
-  bool down = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
+  bool down = (GetAsyncKeyState(opt_.keyDiag) & 0x8000) != 0;
   bool pressed = down && !diagWasDown_;
   diagWasDown_ = down;
   return pressed;
@@ -252,7 +252,7 @@ void ShvGame::logStuck(const std::string& line) {
 }
 
 bool ShvGame::resetKeyPressed() {
-  bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+  bool down = (GetAsyncKeyState(opt_.keyReset) & 0x8000) != 0;
   bool pressed = down && !resetWasDown_;
   resetWasDown_ = down;
   return pressed;

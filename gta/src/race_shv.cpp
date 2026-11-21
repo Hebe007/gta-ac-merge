@@ -1,11 +1,23 @@
 #include "race_shv.hpp"
 #include <windows.h>
 #include "main.h"
+#include <cstdio>
+#include <ctime>
 #include "natives_min.hpp"
 
+void ShvRaceWorld::saveResults(const std::string& t) {
+  if (resultsFile.empty()) return;
+  if (FILE* f = std::fopen(resultsFile.c_str(), "a")) {
+    std::time_t now = std::time(nullptr);
+    char when[32];
+    std::strftime(when, sizeof when, "%Y-%m-%d %H:%M", std::localtime(&now));
+    std::fprintf(f, "%s  %s\n", when, t.c_str());
+    std::fclose(f);
+  }
+}
+
 bool ShvRaceWorld::keyPressed(Key k) {
-  static const int vk[7] = {VK_F10, VK_F11, VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_RETURN};
-  bool down = (GetAsyncKeyState(vk[k]) & 0x8000) != 0;
+  bool down = (GetAsyncKeyState(keys[k]) & 0x8000) != 0;
   bool pressed = down && !wasDown_[k];
   wasDown_[k] = down;
   return pressed;

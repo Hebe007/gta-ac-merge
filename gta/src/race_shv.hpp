@@ -5,6 +5,10 @@
 
 class ShvRaceWorld : public RaceWorld {
  public:
+  // Windows key codes for kPolice, kRace, kUp, kDown, kLeft, kRight, kEnter (key_police, key_race, key_menu_*)
+  int keys[7] = {0x79, 0x7A, 0x26, 0x28, 0x25, 0x27, 0x0D};
+  std::string resultsFile;  // race results are appended here (next to the .asi)
+  void saveResults(const std::string& text) override;
   bool keyPressed(Key k) override;
   void blockPhone() override;
   int wanted() override;

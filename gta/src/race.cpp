@@ -52,7 +52,8 @@ void Race::police(double now) {
   int stars = w_.wanted();
   int next = stars == 0 ? 3 : stars < 4 ? 4 : 0;
   w_.setWanted(next);
-  say(next ? "Police chase: " + std::to_string(next) + " stars (F10 for more / to end)" : "Police chase over", now);
+  say(next ? "Police chase: " + std::to_string(next) + " stars (" + opt_.policeKey + " for more / to end)"
+           : "Police chase over", now);
 }
 
 void Race::menu(double now) {
@@ -76,7 +77,7 @@ void Race::menu(double now) {
   } else {
     w_.text(0.5f, 0.44f, "No waypoint: set one on the map first (Esc, Map)");
   }
-  w_.text(0.5f, 0.49f, "Arrows: choose   Enter: start   F11: close", 0.35f);
+  w_.text(0.5f, 0.49f, "Arrows: choose   Enter: start   " + opt_.raceKey + ": close", 0.35f);
   if (w_.keyPressed(RaceWorld::kEnter)) {
     if (!haveWp) { say("Set a waypoint on the map first", now); return; }
     if (dist2d(wp, w_.playerPos()) < 100.f) { say("The waypoint is too close", now); return; }
@@ -100,6 +101,7 @@ void Race::start(double now) {
   }
   if (racers_.empty()) { say("Couldn't make any opponent cars (check race_cars in gta_link.ini)", now); state_ = State::Idle; return; }
   w_.finishPoint(finish_, true);
+  raceKm_ = dist2d(p, finish_) / 1000.f;
   startAt_ = now + kCountdown;
   playerFinish_ = -1;
   state_ = State::Countdown;
@@ -153,10 +155,23 @@ void Race::racing(double now) {
     w_.text(0.5f, 0.06f, line, 0.5f);
     bool over = (playerFinish_ >= 0 && (aiDone || t - playerFinish_ > kWaitAfterPlayer)) ||
                 (aiDone && playerFinish_ < 0 && t - lastAi > kWaitAfterRacers) || t > kMaxRace;
-    if (over) { state_ = State::Results; resultsUntil_ = now + kResultsSeconds; w_.finishPoint(finish_, false); }
+    if (over) {
+      state_ = State::Results;
+      resultsUntil_ = now + kResultsSeconds;
+      w_.finishPoint(finish_, false);
+      char head[96];
+      std::snprintf(head, sizeof head, "race %.1f km to (%.0f, %.0f), %zu opponents:", raceKm_, finish_.x, finish_.y,
+                    racers_.size());
+      std::string all = head;
+      for (size_t i = 0; i < e.size(); i++)
+        all += "  " + std::to_string(i + 1) + ". " + e[i].name + " " + raceTime(e[i].time);
+      w_.saveResults(all);
+    }
   }
   if (state_ == State::Results) {
     w_.text(0.5f, 0.28f, "RESULTS", 0.7f);
+    w_.text(0.5f, 0.34f + 0.04f * static_cast<float>(std::min<size_t>(e.size(), 8)) + 0.02f,
+            "saved to gta_race_results.txt   (" + opt_.raceKey + " closes)", 0.35f);
     for (size_t i = 0; i < e.size() && i < 8; i++) {
       std::snprintf(line, sizeof line, "%zu.  %-10s  %s", i + 1, e[i].name.c_str(), raceTime(e[i].time).c_str());
       w_.text(0.5f, 0.34f + 0.04f * static_cast<float>(i), line);
