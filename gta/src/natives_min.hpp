@@ -117,4 +117,11 @@ inline void drawMarker(int type, float x, float y, float z, float sx, float sy, 
   invoke<Void>(0x28477EC23D892089, type, x, y, z, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, sx, sy, sz, r, g, b, a, FALSE, FALSE, 2,
                FALSE, static_cast<const char*>(nullptr), static_cast<const char*>(nullptr), FALSE);
 }
+inline float getApproxHeightForPoint(float x, float y) { return invoke<float>(0x29C24BFBED8AB8FB, x, y); }
+inline BOOL getClosestVehicleNodeWithHeading(float x, float y, float z, Vector3* out, float* heading) {
+  return invoke<BOOL>(0xFF071FB798B803B0, x, y, z, out, heading, 1, 3.0f, 0);
+}
+inline void setVehicleCheatPowerIncrease(Vehicle v, float m) { invoke<Void>(0xB59E4BD37AE292DB, v, m); }
+inline void setEntityCoords(Entity e, float x, float y, float z) { invoke<Void>(0x06843DA7060A026B, e, x, y, z, FALSE, FALSE, FALSE, TRUE); }
+inline void setEntityHeading(Entity e, float h) { invoke<Void>(0x8E2530AA8ADA980E, e, h); }
 }  // namespace nat

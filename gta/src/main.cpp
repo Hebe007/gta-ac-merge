@@ -88,6 +88,8 @@ static void ScriptMain() {
     if (ro.cars.empty()) ro.cars = RaceOptions{}.cars;
   }
   ro.maxSpeed = std::strtof(iniValue("race_top_speed_kmh", "290").c_str(), nullptr) / 3.6f;
+  ro.catchUp = std::strtof(iniValue("race_catch_up", "0.6").c_str(), nullptr);
+  ro.drivingStyle = std::atoi(iniValue("race_driving_style", "787004").c_str());
   ShvRaceWorld raceWorld;
   raceWorld.keys[RaceWorld::kPolice] = iniKey("key_police", "F10", &ro.policeKey);
   raceWorld.keys[RaceWorld::kRace] = iniKey("key_race", "F11", &ro.raceKey);
@@ -97,6 +99,7 @@ static void ScriptMain() {
   raceWorld.keys[RaceWorld::kRight] = iniKey("key_menu_right", "RIGHT");
   raceWorld.keys[RaceWorld::kEnter] = iniKey("key_menu_enter", "ENTER");
   raceWorld.resultsFile = besideAsi("gta_race_results.txt");
+  raceWorld.routesFile = besideAsi("gta_race_routes.txt");
   Race race(raceWorld, ro);
   LARGE_INTEGER freq;
   QueryPerformanceFrequency(&freq);

@@ -1,6 +1,7 @@
 #include "race_shv.hpp"
 #include <windows.h>
 #include "main.h"
+#include <cmath>
 #include <cstdio>
 #include <ctime>
 #include "natives_min.hpp"
@@ -83,12 +84,54 @@ int ShvRaceWorld::spawnRacer(const std::string& model, Vec3 p, float heading) {
   return v;
 }
 
-void ShvRaceWorld::startRacer(int car, Vec3 dest, float maxSpeed, int style) {
+void ShvRaceWorld::driveRacer(int car, Vec3 dest, float maxSpeed, int style) {
   nat::freezeEntityPosition(car, FALSE);
   Ped d = nat::getPedInVehicleSeat(car, -1);
   if (!d) return;
-  nat::taskVehicleDriveToCoordLongrange(d, car, dest.x, dest.y, finishZKnown_ ? finishZ_ : dest.z, maxSpeed, style, 10.f);
+  // stop range 0: never slows down for the checkpoint itself; the next one is given before it gets there
+  nat::taskVehicleDriveToCoordLongrange(d, car, dest.x, dest.y, dest.z, maxSpeed, style, 0.f);
   nat::setPedKeepTask(d, TRUE);
+}
+
+void ShvRaceWorld::setRacerPower(int car, float mult) { nat::setVehicleCheatPowerIncrease(car, mult); }
+
+void ShvRaceWorld::moveRacer(int car, Vec3 p, float heading) {
+  nat::setEntityCoords(car, p.x, p.y, p.z);
+  nat::setEntityHeading(car, heading);
+  nat::setVehicleOnGroundProperly(car);
+  nat::setVehicleForwardSpeed(car, 8.f);
+}
+
+float ShvRaceWorld::racerSpeed(int car) { return nat::getEntitySpeed(car); }
+
+float ShvRaceWorld::approxHeight(float x, float y) { return nat::getApproxHeightForPoint(x, y); }
+
+bool ShvRaceWorld::roadNode(Vec3 n, Vec3& out, float& heading) {
+  Vector3 v{};
+  float h = 0;
+  if (!nat::getClosestVehicleNodeWithHeading(n.x, n.y, n.z, &v, &h)) return false;
+  out = {v.x, v.y, v.z};
+  heading = h;
+  return true;
+}
+
+std::vector<Route> ShvRaceWorld::loadRoutes() {
+  std::string text;
+  if (FILE* f = std::fopen(routesFile.c_str(), "rb")) {
+    char buf[4096];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) text.append(buf, n);
+    std::fclose(f);
+  }
+  return routesFromText(text);
+}
+
+void ShvRaceWorld::saveRoutes(const std::vector<Route>& routes) {
+  if (FILE* f = std::fopen(routesFile.c_str(), "wb")) {
+    std::string t = routesToText(routes);
+    std::fwrite(t.data(), 1, t.size(), f);
+    std::fclose(f);
+  }
 }
 
 bool ShvRaceWorld::racerOk(int car) {
@@ -121,22 +164,19 @@ void ShvRaceWorld::releaseRacer(int car, bool remove) {
   nat::setVehicleAsNoLongerNeeded(&v);
 }
 
-void ShvRaceWorld::finishPoint(Vec3 pos, bool show) {
+void ShvRaceWorld::target(Vec3 pos, bool show) {
   if (finishBlip_) { Blip b = finishBlip_; nat::removeBlip(&b); finishBlip_ = 0; }
-  finishZKnown_ = false;
   if (!show) return;
   finishBlip_ = nat::addBlipForCoord(pos.x, pos.y, pos.z);
   nat::setBlipColour(finishBlip_, 5);  // yellow
   nat::setBlipRoute(finishBlip_, TRUE);
 }
 
-void ShvRaceWorld::drawFinish(Vec3 pos) {
-  if (!finishZKnown_) {  // the waypoint has no height; the ground there loads once you get closer
-    float z;
-    if (nat::getGroundZFor3dCoord(pos.x, pos.y, 1000.f, &z)) { finishZ_ = z; finishZKnown_ = true; }
-    else return;
-  }
-  nat::drawMarker(1, pos.x, pos.y, finishZ_ - 1.f, 24.f, 24.f, 6.f, 255, 210, 0, 110);  // yellow ring, 12 m radius
+void ShvRaceWorld::drawCheckpoint(Vec3 pos, bool finish) {
+  float z = pos.z, gz;
+  if (nat::getGroundZFor3dCoord(pos.x, pos.y, pos.z + 3.f, &gz) && std::fabs(gz - pos.z) < 6.f) z = gz;
+  if (finish) nat::drawMarker(1, pos.x, pos.y, z - 1.f, 24.f, 24.f, 8.f, 255, 255, 255, 120);  // white: the finish
+  else nat::drawMarker(1, pos.x, pos.y, z - 1.f, 40.f, 40.f, 4.f, 255, 210, 0, 90);            // yellow: checkpoint
 }
 
 void ShvRaceWorld::text(float x, float y, const std::string& s, float scale) {

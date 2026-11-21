@@ -18,18 +18,25 @@ class ShvRaceWorld : public RaceWorld {
   float playerHeadingDeg() override;
   bool groundZ(Vec3 above, float& z) override;
   int spawnRacer(const std::string& model, Vec3 pos, float headingDeg) override;
-  void startRacer(int car, Vec3 dest, float maxSpeed, int drivingStyle) override;
+  void driveRacer(int car, Vec3 dest, float maxSpeed, int drivingStyle) override;
+  void setRacerPower(int car, float mult) override;
+  void moveRacer(int car, Vec3 pos, float headingDeg) override;
+  float racerSpeed(int car) override;
+  float approxHeight(float x, float y) override;
+  bool roadNode(Vec3 near, Vec3& out, float& headingDeg) override;
+  std::vector<Route> loadRoutes() override;
+  void saveRoutes(const std::vector<Route>& routes) override;
+  std::string routesFile;  // gta_race_routes.txt next to the .asi
   bool racerOk(int car) override;
   Vec3 racerPos(int car) override;
   void releaseRacer(int car, bool remove) override;
-  void finishPoint(Vec3 pos, bool show) override;
-  void drawFinish(Vec3 pos) override;
+  void target(Vec3 pos, bool show) override;
+  void drawCheckpoint(Vec3 pos, bool finish) override;
   void text(float x, float y, const std::string& s, float scale) override;
 
  private:
   bool wasDown_[7] = {};
   std::map<int, int> blips_;  // racer car -> its blip
   int finishBlip_ = 0;
-  float finishZ_ = 0;
-  bool finishZKnown_ = false;
+
 };
