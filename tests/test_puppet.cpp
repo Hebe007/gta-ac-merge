@@ -58,18 +58,23 @@ struct FakeGame : Game {
   void logStuck(const std::string& l) override { stuck.push_back(l); }
   bool hitPending = false;
   Hit hit{};
+  uint32_t gtaBurst = 0, kept = 0;
+  uint32_t burstTyres(int) override { return gtaBurst; }
+  void syncTyres(int, uint32_t keep) override { kept = keep; gtaBurst &= keep; }
   bool takeHit(int, Hit& out) override { if (!hitPending) return false; hitPending = false; out = hit; return true; }
   bool shown(const std::string& s) const { for (auto& t : texts) if (t.find(s) != std::string::npos) return true; return false; }
 };
 
 static LinkState shm;
 static float acSpeed = 88;
+static uint32_t acBlown = 0;
 static void acWrite(Vec3 posAc, float rideHeight = 0, float steerDeg = 0, float lockDeg = 0) {
   LinkState s{};
   s.magic = LINK_MAGIC; s.version = LINK_VERSION;
   s.pos[0] = posAc.x; s.pos[1] = posAc.y; s.pos[2] = posAc.z;
   s.fwd[2] = -1; s.up[1] = 1;
-  s.speedKmh = acSpeed; s.gear = 4; s.rpm = 4200;
+  s.speedKmh = acSpeed;
+  s.tyresBlown = acBlown; s.gear = 4; s.rpm = 4200;
   s.rideHeight = rideHeight;
   s.steerDeg = steerDeg;
   s.steerLockDeg = lockDeg;
@@ -524,4 +529,25 @@ TEST_CASE("one hit per contact: GTA pressing the cars together again next frame 
     acWrite({0, 30, 0}); p.tick(2.5 + i * 0.016, &shm, "", nullptr, &hits);
   }
   CHECK(hits.count == 1);
+}
+
+TEST_CASE("a tyre GTA bursts is blown in AC too; GTA's stays burst while AC's is, and is fixed after AC's repair") {
+  shm = {}; cmd = {}; acBlown = 0; FakeGame g; Puppet p(g, "zr350");
+  acWrite({0, 30, 0}); g.key = true; p.tick(1.0, &shm, "", &cmd);
+  acWrite({0, 30, 0}); p.tick(2.5, &shm, "", &cmd);
+  uint32_t tele = cmd.teleportId;
+  g.gtaBurst = 4;  // spike strip: rear left
+  acWrite({0, 30, 0}); p.tick(2.516, &shm, "", &cmd);
+  CHECK(cmd.blowId == 1);
+  CHECK(cmd.blowMask == 4u);
+  CHECK(cmd.teleportId == tele);  // not a teleport request
+  CHECK(g.kept == 4u);            // GTA keeps it burst while AC catches up
+  acBlown = 4;                    // AC blew it
+  for (int i = 0; i < 10; i++) { acWrite({0, 30, 0}); p.tick(2.6 + i * 0.016, &shm, "", &cmd); }
+  CHECK(cmd.blowId == 1);         // asked once
+  CHECK(g.gtaBurst == 4u);
+  acBlown = 0;                    // repaired in AC
+  acWrite({0, 30, 0}); p.tick(3.0, &shm, "", &cmd);
+  CHECK(g.gtaBurst == 0u);        // fixed in GTA too
+  CHECK(cmd.blowId == 1);         // and not asked again
 }

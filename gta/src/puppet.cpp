@@ -41,6 +41,7 @@ void Puppet::tick(double now, const volatile LinkState* raw, const std::string& 
         last_.pos = {last_.pos.x + up.x * lift_, last_.pos.y + up.y * lift_, last_.pos.z + up.z * lift_};
         haveLast_ = true;
         feedHit(f, now);  // before setPose: GTA's physics since last frame
+        feedTyres(f, now);
         g_.setPose(veh_, last_);
         float lock = f.steerLockDeg > 1.f ? f.steerLockDeg : 450.f;  // AC: + = right; GTA: + = left
         float bias = -f.steerDeg / lock * opt_.steerScale * (opt_.steerInvert ? -1.f : 1.f) + opt_.steerOffset;
@@ -147,16 +148,49 @@ void Puppet::feedHit(const LinkFrame& f, double now) {
   hitsSent_++;
 }
 
+// Tyres: GTA bursts one (spike strip, a cop shooting it) -> ask AC to blow it; while AC has it blown, GTA's stays
+// burst too; once AC no longer has it blown (repaired, F9 repair), GTA's is fixed.
+void Puppet::feedTyres(const LinkFrame& f, double now) {
+  uint32_t gta = g_.burstTyres(veh_);
+  if (blowPending_ && (f.tyresBlown & blowPending_) == blowPending_) blowPending_ = 0;  // AC did it
+  if (blowPending_ && now - blowSentAt_ > 2.0) blowPending_ = 0;                        // AC didn't: give up
+  uint32_t fresh = gta & ~knownBurst_ & ~f.tyresBlown;  // burst since we last looked
+  if (fresh && cmd_ && now >= hitQuietUntil_) {
+    if (!cmdStarted_) {
+      cmdOut_.blowId = cmd_->blowId;
+      cmdOut_.teleportId = teleportId_ = cmd_->teleportId;  // keep the teleport id as it is: no new teleport
+      cmdStarted_ = true;
+    }
+    blowPending_ |= fresh;
+    knownBurst_ |= fresh;
+    blowSentAt_ = now;
+    cmdOut_.blowId++;
+    cmdOut_.blowMask = blowPending_;
+    writeCommand();
+    say(std::string("Tyre burst: ") + ((fresh & 3) ? "front" : "rear"), now);
+  }
+  uint32_t keep = f.tyresBlown | blowPending_;
+  g_.syncTyres(veh_, keep);
+  knownBurst_ = (knownBurst_ | (gta & f.tyresBlown)) & keep;  // the rest GTA has just fixed
+}
+
+void Puppet::writeCommand() {
+  cmdOut_.magic = LINK_MAGIC;
+  cmdOut_.version = LINK_VERSION;
+  cmdOut_.seq = cmd_->seq;
+  seqWrite(cmd_, cmdOut_);
+}
+
 bool Puppet::sendTeleport(Vec3 acPos, Vec3 acFwd) {
   if (!cmd_) return false;
-  LinkCommand c{};
-  c.magic = LINK_MAGIC;
-  c.version = LINK_VERSION;
-  c.seq = cmd_->seq;
-  c.teleportId = ++teleportId_;
-  c.pos[0] = acPos.x; c.pos[1] = acPos.y; c.pos[2] = acPos.z;
-  c.fwd[0] = acFwd.x; c.fwd[1] = acFwd.y; c.fwd[2] = acFwd.z;
-  seqWrite(cmd_, c);
+  if (!cmdStarted_) {  // continue the ids already in the block (the AC app ignores ids it has seen)
+    cmdOut_.blowId = cmd_->blowId;
+    cmdStarted_ = true;
+  }
+  cmdOut_.teleportId = ++teleportId_;
+  cmdOut_.pos[0] = acPos.x; cmdOut_.pos[1] = acPos.y; cmdOut_.pos[2] = acPos.z;
+  cmdOut_.fwd[0] = acFwd.x; cmdOut_.fwd[1] = acFwd.y; cmdOut_.fwd[2] = acFwd.z;
+  writeCommand();
   return true;
 }
 

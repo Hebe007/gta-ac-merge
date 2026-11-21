@@ -46,8 +46,21 @@ local function fromGta(x, y, z, heading)
   return vec3(x, z + 1, -y), vec3(-math.sin(h), 0, -math.cos(h))
 end
 
+local lastBlowId = cmd and cmd[C.blowId] or 0  -- likewise for tyre requests
+local tyreMsg = ''
+
 local function handleCommand()
   if not cmd or cmd[C.magic] ~= L.MAGIC or cmd[C.seq] % 2 == 1 then return end
+  local blowId = cmd[C.blowId]
+  if blowId ~= lastBlowId then  -- GTA burst some tyres (spike strip, shots): blow the same ones here
+    lastBlowId = blowId
+    local mask = cmd[C.blowMask]
+    if mask ~= 0 then
+      local ok, err = pcall(physics.blowTyres, 0, mask)
+      tyreMsg = ok and string.format('GTA burst tyres (mask %d) - "Repair now" fixes them', mask)
+                   or ('blowing tyres refused: ' .. tostring(err))
+    end
+  end
   local id = cmd[C.teleportId]
   if id == lastTeleportId then return end
   local p, f = cmd[C.pos], cmd[C.fwd]
@@ -135,11 +148,22 @@ local STEADY, HOLD = 2, 1.0
 local bentAngle = nil
 local bentSince = nil
 
+local function blownMask(car)
+  local m = 0
+  for i = 0, 3 do
+    local ok, b = pcall(function() return car.wheels[i].isBlown end)
+    if ok and b then m = m + 2 ^ i end
+  end
+  return m
+end
+
 local function repair(car, why)
   local fuel = car.fuel
   local changed = changes(car)
+  local blown = why ~= 'by hand' and blownMask(car) or 0  -- automatic repairs leave blown tyres blown
   local ok, err = pcall(physics.resetCarState, 0, 1)
   if ok and fuel then pcall(physics.setCarFuel, 0, fuel) end
+  if ok and blown ~= 0 then pcall(physics.blowTyres, 0, blown) end
   local f = vec3(car.look.x, 0, car.look.z)
   if f:length() < 1e-3 then f = vec3(0, 0, 1) end
   teleport(car.position:clone(), f:normalize())  -- in place: keeps the speed (see keepVel)
@@ -271,6 +295,7 @@ function script.update(dt)
   mem[K.brake] = car.brake or 0
   mem[K.teleportAck] = lastTeleportId
   mem[K.teleportStatus] = teleportStatus
+  mem[K.tyresBlown] = blownMask(car)
   seq = seq + 2
   mem[K.seq] = seq  -- even: done
   updates = updates + 1
@@ -288,6 +313,7 @@ function script.windowMain(dt)
   if ui.button('Repair now') then local car = ac.getCar(0); if car then repair(car, 'by hand') end end
   ui.text(string.format('repairs: %d   %s', repairs, repairMsg))
   ui.text(string.format('GTA hits: %d   %s%s', hitsApplied, hitMsg, hits and '' or '   (hits memory failed)'))
+  if tyreMsg ~= '' then ui.text(tyreMsg) end
   ui.separator()
   ui.text('Teleport to:')
   for _, place in ipairs(PLACES) do

@@ -5,7 +5,7 @@
 #include <cstdint>
 
 constexpr uint32_t LINK_MAGIC = 0x47544143;  // "GTAC"
-constexpr uint32_t LINK_VERSION = 5;
+constexpr uint32_t LINK_VERSION = 6;
 
 // Names of the memory-mapped files, opened by CSP's ac.writeMemoryMappedFile. CSP's own examples use the
 // "AcTools.CSP." prefix, so we do too. tools/linkpeek.py shows whether the GTA side sees the data under this name;
@@ -37,6 +37,7 @@ struct LinkState {
   float brake;  // brake pedal 0..1
   uint32_t teleportAck;    // last LinkCommand.teleportId the AC app handled
   int32_t teleportStatus;  // for that id: 1 = moved, -1 = CSP refused
+  uint32_t tyresBlown;     // AC's blown tyres: 1 front left, 2 front right, 4 rear left, 8 rear right
 };
 
 // Written by the GTA .asi: requests for the AC app (AC space).
@@ -47,6 +48,8 @@ struct LinkCommand {
   uint32_t teleportId;  // new id = please move the AC car
   float pos[3];
   float fwd[3];
+  uint32_t blowId;    // new id = please blow the tyres in blowMask (spike strips, shot tyres in GTA)
+  uint32_t blowMask;  // same bits as LinkState.tyresBlown
 };
 
 // GTA -> AC: hits from GTA traffic and pedestrians on your car (AC space; impulse in N*s, point in world).

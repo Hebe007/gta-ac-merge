@@ -49,5 +49,6 @@ LinkFrame LinkClient::update(const volatile LinkState* raw, double now) {
   f.brake = last_.brake;
   f.teleportAck = last_.teleportAck;
   f.teleportStatus = last_.teleportStatus;
+  f.tyresBlown = last_.tyresBlown;
   return f;
 }

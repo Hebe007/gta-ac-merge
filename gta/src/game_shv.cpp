@@ -70,7 +70,7 @@ void ShvGame::setPose(int v, const Pose& p) {
     haveCmd_ = true;
     nat::setEntityAngularVelocity(v, p.angVel.x, p.angVel.y, p.angVel.z);
   }
-  if (!opt_.gtaDamage && ++repairCountdown_ >= 60) {  // undo anything that slipped through, about once a second
+  if (!opt_.gtaDamage && ++repairCountdown_ >= 60 && keepTyres_ == 0) {  // undo anything that slipped through, about once a second
     repairCountdown_ = 0;
     nat::setVehicleFixed(v);
   }
@@ -141,7 +141,7 @@ void ShvGame::prepare(int v) {
     nat::setEntityProofsAll(v);
     nat::setVehicleCanBeVisiblyDamaged(v, FALSE);
     nat::setVehicleCanBreak(v, FALSE);
-    nat::setVehicleTyresCanBurst(v, FALSE);
+    nat::setVehicleTyresCanBurst(v, opt_.tyresBurst ? TRUE : FALSE);
     nat::setVehicleWheelsCanBreak(v, FALSE);
     nat::setVehicleStrong(v, TRUE);
     nat::setDisableVehiclePetrolTankDamage(v, TRUE);
@@ -155,6 +155,7 @@ void ShvGame::release(int v) {
   nat::freezeEntityPosition(v, FALSE);
   heldFrozen_ = false;
   blockedFrames_ = 0;
+  keepTyres_ = 0;
   haveCmd_ = false;
   nat::setEntityInvincible(v, FALSE);
   nat::setEntityCanBeDamaged(v, TRUE);
@@ -190,6 +191,22 @@ void ShvGame::logHole(Vec3 p) {
     std::fprintf(f, "%.1f,%.1f,%.1f\n", p.x, p.y, p.z);
     std::fclose(f);
   }
+}
+
+// GTA tyre indices (car): 0 front left, 1 front right, 4 rear left, 5 rear right; AC bits 1, 2, 4, 8.
+static const int kGtaTyre[4] = {0, 1, 4, 5};
+
+uint32_t ShvGame::burstTyres(int v) {
+  uint32_t m = 0;
+  for (int i = 0; i < 4; i++)
+    if (nat::isVehicleTyreBurst(v, kGtaTyre[i], FALSE)) m |= 1u << i;
+  return m;
+}
+
+void ShvGame::syncTyres(int v, uint32_t keep) {
+  keepTyres_ = keep;
+  for (int i = 0; i < 4; i++)
+    if (!(keep & (1u << i)) && nat::isVehicleTyreBurst(v, kGtaTyre[i], FALSE)) nat::setVehicleTyreFixed(v, kGtaTyre[i]);
 }
 
 // GTA has no native for a vehicle's mass: a typical one per vehicle class (GET_VEHICLE_CLASS).

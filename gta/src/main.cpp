@@ -33,6 +33,7 @@ static void ScriptMain() {
   opt.iniPath = besideAsi("gta_link.ini");
   opt.iniFound = GetFileAttributesA(opt.iniPath.c_str()) != INVALID_FILE_ATTRIBUTES;
   opt.engineAudio = iniValue("engine_audio", "voltic");
+  opt.tyresBurst = iniValue("tyres_burst", "1") == "1";
   ShvGame game(opt);
   game.holesFile = besideAsi("gta_link_holes.txt");
   game.stuckFile = besideAsi("gta_link_stuck.txt");

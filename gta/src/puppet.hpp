@@ -43,7 +43,9 @@ class Puppet {
   void adopt(const LinkFrame& f, double now, const std::string& why);
   void resetHere(double now, bool off);  // send the AC car upright onto GTA's ground at the current spot
   bool sendTeleport(Vec3 acPos, Vec3 acFwd);  // take over the car you're in  // car well below GTA's ground with nothing right under it  // sets lift_ from both cars' heights; false = try again
-  void feedHit(const LinkFrame& f, double now);  // GTA car/pedestrian hit our car: tell the AC app
+  void feedHit(const LinkFrame& f, double now);
+  void feedTyres(const LinkFrame& f, double now);  // GTA burst a tyre: ask the AC app to blow it too
+  void writeCommand();  // GTA car/pedestrian hit our car: tell the AC app
   void say(const std::string& m, double now) { msg_ = m; msgUntil_ = now + kMessageSeconds; }
 
   Game& g_;
@@ -57,6 +59,11 @@ class Puppet {
   double prevBiasAt_ = -1;
   volatile LinkCommand* cmd_ = nullptr;
   volatile HitBlock* hits_ = nullptr;
+  LinkCommand cmdOut_{};      // what we last wrote to the command block (teleport and tyre requests together)
+  bool cmdStarted_ = false;
+  uint32_t blowPending_ = 0;
+  uint32_t knownBurst_ = 0;   // GTA tyres already handled (asked AC / kept burst to match AC)  // tyres asked to blow that AC doesn't report blown yet
+  double blowSentAt_ = 0;
   double hitQuietUntil_ = 0;
   int hitsSent_ = 0;
   bool adopted_ = false;       // the car you were in, not one we spawned

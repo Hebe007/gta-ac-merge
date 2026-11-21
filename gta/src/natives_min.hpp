@@ -65,6 +65,8 @@ inline void setEntityProofsAll(Entity e) { invoke<Void>(0xFAEE099C6F890BB8, e, T
 inline void setVehicleCanBeVisiblyDamaged(Vehicle v, BOOL on) { invoke<Void>(0x4C7028F78FFD3681, v, on); }
 inline void setVehicleCanBreak(Vehicle v, BOOL on) { invoke<Void>(0x59BF8C3D52C92F66, v, on); }
 inline void setVehicleTyresCanBurst(Vehicle v, BOOL on) { invoke<Void>(0xEB9DC3C7D8596C46, v, on); }
+inline BOOL isVehicleTyreBurst(Vehicle v, int wheel, BOOL completely) { return invoke<BOOL>(0xBA291848A0815CA9, v, wheel, completely); }
+inline void setVehicleTyreFixed(Vehicle v, int wheel) { invoke<Void>(0x6E13FC662B882D1D, v, wheel); }
 inline void setVehicleWheelsCanBreak(Vehicle v, BOOL on) { invoke<Void>(0x29B18B4FD460CA8F, v, on); }
 inline void setVehicleStrong(Vehicle v, BOOL on) { invoke<Void>(0x3E8C8727991A8A0B, v, on); }
 inline void setDisableVehiclePetrolTankDamage(Vehicle v, BOOL on) { invoke<Void>(0x37C8252A7C92D017, v, on); }
